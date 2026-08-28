@@ -140,6 +140,7 @@ ao processo"><span>Bem-vindo<br>ao processo</span></h2>
         <button class="botao botao--fantasma" id="btn-voltar-capa">Voltar</button>
       </div>
       <p class="capa__nota" id="nota-equipes">Cadastre quatro pessoas · quem abre o processo também assina a decisão final</p>
+      <p class="cronometro cronometro--bloco oculto" id="cronometro-cadastro" role="timer" aria-live="off">03:00</p>
 
     </section>
 
@@ -195,6 +196,29 @@ ao processo"><span>Bem-vindo<br>ao processo</span></h2>
       <p class="aviso oculto" id="erro-online"></p>
 
       <p class="capa__nota">As duas equipes recebem a mesma empresa e as mesmas perguntas · vence o maior placar</p>
+
+    </section>
+
+    <!-- ================= LARGADA CONJUNTA ================= -->
+    <section class="tela oculto" id="tela-largada">
+
+      <p class="rubrica">Largada</p>
+      <h2 class="capa__titulo" data-eco="Protocolo
+conferido"><span>Protocolo<br>conferido</span></h2>
+
+      <ul class="campos">
+        <li><span class="rotulo">Sua equipe</span>
+            <span class="pontilhado"></span>
+            <span class="valor" id="largada-nos">—</span></li>
+        <li><span class="rotulo">Equipe adversária</span>
+            <span class="pontilhado"></span>
+            <span class="valor" id="largada-eles">—</span></li>
+      </ul>
+
+      <p class="duelo__veredito" id="largada-status">Cadastro concluído. Aguardando a outra equipe…</p>
+      <p class="largada__conta oculto" id="largada-conta">3</p>
+
+      <p class="capa__nota">As duas equipes começam ao mesmo tempo · a partir da largada, cada decisão tem 60 segundos</p>
 
     </section>
 
@@ -339,6 +363,7 @@ comparado"><span>Parecer<br>comparado</span></h2>
           <div class="dossie__topo">
             <span id="dossie-fase">Fase 01</span>
             <span id="dossie-decisao">Abertura da fase</span>
+            <span class="cronometro oculto" id="cronometro" role="timer" aria-live="off">01:00</span>
           </div>
           <div class="dossie__corpo" id="dossie-corpo" aria-live="polite"></div>
         </div>

@@ -20,6 +20,9 @@
             "nome": {
               ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 42"
             },
+            "pronto": {
+              ".validate": "newData.isBoolean()"
+            },
             "fase": {
               ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 20"
             },

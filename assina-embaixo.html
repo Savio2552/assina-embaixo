@@ -2535,6 +2535,47 @@ ao processo"><span>Bem-vindo<br>ao processo</span></h2>
      compara as duas equipes, o deferimento é padrão absoluto. */
   var LICENSE_MIN = 70;
 
+  /* Cronômetro. Só o modo online liga (setTimer): no individual e no jogo
+     de sala, sem adversário, relógio só atrapalha quem está aprendendo. */
+  var QUESTION_SECONDS = 60;
+  var SETUP_SECONDS = 180;
+  var timerEnabled = false;
+  var tick = null;
+
+  function stopTimer() {
+    if (tick) { clearInterval(tick); tick = null; }
+    var el = $("#cronometro");
+    if (el) el.classList.add("oculto");
+  }
+
+  /* Conta pelo relógio de parede, não somando intervalos: aba em segundo
+     plano estrangula setInterval, e um cronômetro que atrasa junto com a
+     aba daria vantagem a quem trocasse de janela. */
+  function startTimer(selector, seconds, onEnd) {
+    if (tick) { clearInterval(tick); tick = null; }
+    var el = $(selector);
+    if (!el) return;
+    var deadline = Date.now() + seconds * 1000;
+    el.classList.remove("oculto");
+    paint();
+    tick = setInterval(paint, 250);
+
+    function paint() {
+      var left = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+      el.textContent = clockText(left);
+      el.classList.toggle("cronometro--urgente", left <= 10);
+      if (left <= 0) {
+        clearInterval(tick);
+        tick = null;
+        onEnd();
+      }
+    }
+  }
+
+  function clockText(total) {
+    return pad2(Math.floor(total / 60)) + ":" + pad2(total % 60);
+  }
+
   var GRADE_BANDS = [
     { min: 90, title: "Licenciamento responsável", text: "O processo chega ao fim com despesas pagas, estudo íntegro e informação verdadeira. É assim que a licença se sustenta depois de emitida." },
     { min: 70, title: "Licenciamento aprovado com ajustes", text: "O caminho estava certo, mas houve escolhas que geraram pendência. Ajustes agora custam menos do que correção depois da fiscalização." },
@@ -2779,13 +2820,20 @@ ao processo"><span>Bem-vindo<br>ao processo</span></h2>
     return t + f.decisions.reduce(function (s, decision) { return s + decision.maxPoints; }, 0);
   }, 0) + BONUS_ALL_OBLIGATIONS_MET.points + BONUS_ACCURACY_MAX;
 
+  /* O pior que uma decisão pode render. Serve para a escala da nota final e
+     para o estouro de prazo, que pesa igual a errar — se fossem duas contas
+     separadas, um dia elas discordariam. */
+  function worstPointsFor(decision) {
+    if (decision.type === "choice") {
+      return Math.min.apply(null, decision.options.map(function (o) { return o.points; }));
+    }
+    if (decision.type === "sorting") return decision.cards.length * decision.pointsPerMiss;
+    return MULTI_SELECT_FAIL_POINTS;
+  }
+
   var MIN_POINTS = CONTENT.reduce(function (t, f) {
     return t + f.decisions.reduce(function (s, decision) {
-      if (decision.type === "choice") {
-        return s + Math.min.apply(null, decision.options.map(function (o) { return o.points; }));
-      }
-      if (decision.type === "sorting") return s + decision.cards.length * decision.pointsPerMiss;
-      return s + MULTI_SELECT_FAIL_POINTS;
+      return s + worstPointsFor(decision);
     }, 0);
   }, 0);
 
@@ -3161,7 +3209,11 @@ ao processo"><span>Bem-vindo<br>ao processo</span></h2>
     if (decision.type === "sorting") bindSorting(decision);
     else bindOptions(decision.type === "multiSelect");
 
-    $("#btn-registrar").addEventListener("click", submitDecision);
+    $("#btn-registrar").addEventListener("click", function () { submitDecision(false); });
+
+    if (timerEnabled) {
+      startTimer("#cronometro", QUESTION_SECONDS, function () { submitDecision(true); });
+    }
   }
 
   function optionListHtml(items, isMultiSelect) {
@@ -3303,6 +3355,22 @@ ao processo"><span>Bem-vindo<br>ao processo</span></h2>
     return evaluateSorting(decision);
   }
 
+  /* Prazo vencido pesa o mesmo que errar. Valer zero seria pior: deixar o
+     relógio correr passaria a ser melhor do que arriscar, que é o oposto do
+     que o jogo ensina. */
+  function evaluateTimeout(decision) {
+    return {
+      verdict: "erro",
+      points: worstPointsFor(decision),
+      effects: { compliance: -6, credibility: -4 },
+      text: "O prazo desta decisão venceu sem manifestação. No processo real o " +
+        "silêncio não é neutro: a exigência continua de pé e o ônus segue com o " +
+        "empreendedor. Por isso não decidir custa o mesmo que decidir errado.",
+      legalBasis: decision.legalBasis,
+      obligationsMet: false
+    };
+  }
+
   function evaluateChoice(decision) {
     var o = decision.options[state.selection];
     return {
@@ -3380,8 +3448,9 @@ ao processo"><span>Bem-vindo<br>ao processo</span></h2>
      8. REGISTRO E RETORNO JURÍDICO
      --------------------------------------------------------------------- */
 
-  function submitDecision() {
-    var outcome = evaluate();
+  function submitDecision(byTimeout) {
+    stopTimer();
+    var outcome = byTimeout === true ? evaluateTimeout(currentDecision()) : evaluate();
     var entries = [];
 
     state.points += outcome.points;
@@ -3691,6 +3760,17 @@ ao processo"><span>Bem-vindo<br>ao processo</span></h2>
     setMascotState("#fig-" + i, "ok");
   }
 
+  /* Se o prazo do cadastro vence com vagas em branco, a partida não pode
+     travar: entra um nome genérico e o processo abre. */
+  function fillMissingTeamNames() {
+    teamDraft.forEach(function (c, i) {
+      if (c.name.trim()) return;
+      c.name = "Responsável " + pad2(i + 1);
+      var field = $("#equipe-nome-" + i);
+      if (field) field.value = c.name;
+    });
+  }
+
   function openTeamSetup() {
     gameMode = "equipe";
     showScreen("#tela-equipes");
@@ -3726,6 +3806,16 @@ ao processo"><span>Bem-vindo<br>ao processo</span></h2>
     }
 
     errorBox.classList.add("oculto");
+    stopTimer();
+
+    /* No online quem dá a largada é a sala: esta equipe só se declara pronta
+       e espera a outra. onTeamReady devolve true quando assume o comando. */
+    var bridge = window.AssinaEmbaixo;
+    if (bridge && typeof bridge.onTeamReady === "function" &&
+        bridge.onTeamReady(company, teams) === true) {
+      return;
+    }
+
     startGame(company, teams);
   }
 
@@ -3841,6 +3931,7 @@ ao processo"><span>Bem-vindo<br>ao processo</span></h2>
   }
 
   function showCover() {
+    stopTimer(); /* sair da partida não pode deixar um prazo correndo atrás */
     showScreen("#tela-boas-vindas");
     react("#mascote-capa", "idle", "Quem assina o trabalho.", true);
   }
@@ -3859,7 +3950,8 @@ ao processo"><span>Bem-vindo<br>ao processo</span></h2>
   }
 
   var SCREENS = ["#tela-boas-vindas", "#tela-online", "#tela-equipes",
-                 "#tela-abertura", "#tela-jogo", "#tela-duelo", "#tela-final"];
+                 "#tela-abertura", "#tela-jogo", "#tela-largada",
+                 "#tela-duelo", "#tela-final"];
 
   function showScreen(selector) {
     SCREENS.forEach(function (id) {
@@ -3872,12 +3964,14 @@ ao processo"><span>Bem-vindo<br>ao processo</span></h2>
     else if (selector === "#tela-online") $("#faixa-folha").textContent = "Fl. 00 · sala";
     else if (selector === "#tela-equipes") $("#faixa-folha").textContent = "Fl. 00 · responsáveis";
     else if (selector === "#tela-abertura") $("#faixa-folha").textContent = "Fl. 01";
+    else if (selector === "#tela-largada") $("#faixa-folha").textContent = "Largada";
     else if (selector === "#tela-duelo") $("#faixa-folha").textContent = "Parecer comparado";
     else if (selector === "#tela-final") $("#faixa-folha").textContent = "Parecer final";
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function startGame(name, teams) {
+    stopTimer(); /* partida nova nunca herda relógio da anterior */
     state = initialState(name);
     state.teams = teams || [];
     $("#alerta-caixa").classList.add("oculto");
@@ -3923,6 +4017,17 @@ ao processo"><span>Bem-vindo<br>ao processo</span></h2>
     newRoomCode: newRoomCode,
     gradeFor: gradeFor,
     LICENSE_MIN: LICENSE_MIN,
+    QUESTION_SECONDS: QUESTION_SECONDS,
+    SETUP_SECONDS: SETUP_SECONDS,
+    setTimer: function (on) { timerEnabled = !!on; if (!on) stopTimer(); },
+    startSetupTimer: function () {
+      startTimer("#cronometro-cadastro", SETUP_SECONDS, function () {
+        fillMissingTeamNames();
+        startTeamGame();
+      });
+    },
+    beginGame: function (company, teams) { startGame(company, teams); },
+    onTeamReady: null,
     normalizeRoomCode: normalizeRoomCode,
     companyForRoom: companyForRoom,
     prepareTeamSetup: prepareTeamSetup,

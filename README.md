@@ -45,6 +45,28 @@ tests/
 └── online.test.js           testes do modo duelo
 ```
 
+## Modo duelo (online)
+
+Duas equipes de quatro, uma tela por equipe. Uma cria a sala, a outra entra
+com o código de 4 caracteres; as duas recebem **a mesma empresa**, derivada
+do próprio código — ela não trafega pela rede.
+
+O cadastro dos responsáveis tem **3 minutos**. Quando as duas equipes se
+declaram prontas, as telas contam 3, 2, 1 e começam juntas. A partir daí
+cada equipe corre no seu ritmo, com **60 segundos por decisão**: prazo
+vencido sem resposta pesa o mesmo que responder errado, senão deixar o
+relógio correr viraria estratégia.
+
+No fim, as duas notas aparecem lado a lado. Vencer o duelo e obter a
+licença são coisas diferentes — o duelo compara as equipes, o deferimento é
+padrão absoluto a partir de 70 pontos, e as duas podem sair sem licença.
+
+O relógio e a sala existem **só no modo online**: o individual, o jogo de
+sala e o `assina-embaixo.html` seguem sem prazo e sem rede.
+
+Para funcionar, as regras de `firebase/database.rules.json` precisam estar
+publicadas no console do Firebase.
+
 ## Testes
 
 ```

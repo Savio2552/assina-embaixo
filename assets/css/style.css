@@ -1667,3 +1667,53 @@ body.splash-ativa { overflow: hidden; }
   line-height: 1.55;
 }
 .duelo__licenca--grave { border-left-color: var(--carmim); }
+
+/* =========================================================================
+   CRONÔMETRO E LARGADA (modo online)
+
+   O relógio fica no cabeçalho do dossiê, ao lado do número da decisão: é
+   onde o olho já está quando a questão aparece. Nos últimos 10 segundos ele
+   vira carmim e pulsa — quem pediu menos movimento recebe só a cor.
+   ========================================================================= */
+
+.cronometro {
+  margin-left: auto;
+  padding: 2px 10px;
+  border: 1px solid var(--tinta-3);
+  font-family: var(--fonte-dado);
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.08em;
+  color: var(--tinta-2);
+}
+
+.cronometro--urgente {
+  border-color: var(--carmim);
+  color: var(--carmim);
+  font-weight: 700;
+  animation: pulso-prazo 1s steps(2, end) infinite;
+}
+
+.cronometro--bloco {
+  display: block;
+  margin: 14px auto 0;
+  width: max-content;
+}
+
+@keyframes pulso-prazo {
+  50% { opacity: 0.45; }
+}
+
+.largada__conta {
+  margin-top: 18px;
+  font-family: var(--fonte-dado);
+  font-size: clamp(3.4rem, 14vw, 5.4rem);
+  line-height: 1;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  color: var(--carmim);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cronometro--urgente { animation: none; }
+}

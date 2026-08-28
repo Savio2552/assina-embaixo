@@ -153,6 +153,7 @@
 
   function abrirSala(code) {
     limparErro();
+    GAME.setTimer(true); /* o relógio é do duelo; offline e local seguem sem ele */
     $("#sala-codigo").textContent = code;
     $("#sala-empresa").textContent = GAME.companyForRoom(code);
     $("#painel-sala").classList.remove("oculto");
@@ -178,6 +179,61 @@
     /* A empresa vem do código, não de um sorteio local: as duas telas
        chegam ao mesmo nome sem trocar uma mensagem sequer. */
     GAME.prepareTeamSetup(GAME.companyForRoom(room.code), true);
+    GAME.startSetupTimer();
+  }
+
+  /* -----------------------------------------------------------------------
+     LARGADA CONJUNTA
+
+     Cada equipe se declara pronta e espera. Quando as duas estão, as duas
+     contam 3, 2, 1 e começam — daí em diante cada uma corre no seu ritmo,
+     com o prazo de cada decisão servindo de teto.
+     --------------------------------------------------------------------- */
+
+  var partida = null;   /* empresa e responsáveis, guardados até a largada */
+  var largando = false;
+
+  function estadoDaEquipe(eq) {
+    if (!eq) return "ainda não entrou";
+    return (eq.nome || "equipe") + " · " + (eq.pronto ? "pronta" : "cadastrando");
+  }
+
+  function renderLargada(equipes) {
+    if (!partida || !room) return;
+    var meu = equipes[room.side] || {};
+    var outro = equipes[room.side === "a" ? "b" : "a"];
+
+    $("#largada-nos").textContent = estadoDaEquipe(meu);
+    $("#largada-eles").textContent = estadoDaEquipe(outro);
+
+    if (outro && outro.pronto) {
+      dispararLargada();
+    } else {
+      $("#largada-status").textContent = outro
+        ? "Cadastro concluído. Aguardando a outra equipe terminar o dela…"
+        : "Cadastro concluído. A outra equipe ainda não entrou na sala…";
+    }
+  }
+
+  function dispararLargada() {
+    if (largando) return;
+    largando = true;
+    stopWatching(); /* daqui pra frente cada equipe corre sozinha */
+
+    $("#largada-status").textContent = "As duas equipes estão prontas.";
+    var conta = $("#largada-conta");
+    var n = 3;
+    conta.textContent = n;
+    conta.classList.remove("oculto");
+
+    var t = setInterval(function () {
+      n--;
+      if (n > 0) { conta.textContent = n; return; }
+      clearInterval(t);
+      conta.classList.add("oculto");
+      largando = false;
+      GAME.beginGame(partida.company, partida.teams);
+    }, 1000);
   }
 
   /* -----------------------------------------------------------------------
@@ -346,6 +402,21 @@
      LIGAÇÕES COM O JOGO
      --------------------------------------------------------------------- */
 
+  /* Devolve true para dizer ao jogo "eu assumo daqui": no online quem dá a
+     largada é a sala, não o botão de abrir o processo. */
+  GAME.onTeamReady = function (company, teams) {
+    if (!room) return false;
+    partida = { company: company, teams: teams };
+    room.ref.child("equipes/" + room.side).update({ pronto: true });
+    $("#largada-nos").textContent = "pronta";
+    $("#largada-eles").textContent = "—";
+    $("#largada-status").textContent = "Cadastro concluído. Aguardando a outra equipe…";
+    $("#largada-conta").classList.add("oculto");
+    GAME.showScreen("#tela-largada");
+    watchRoom(renderLargada);
+    return true;
+  };
+
   GAME.onFinalScore = function (score) {
     if (!room) return;
     meuPlacar = score;
@@ -409,7 +480,9 @@
     $("#btn-recomecar-duelo").addEventListener("click", function () {
       stopWatching();
       room = null;
+      partida = null;
       meuPlacar = null;
+      GAME.setTimer(false);
       $("#btn-voltar-duelo").classList.add("oculto");
       $("#bloco-duelo").classList.add("oculto");
       $("#btn-recomecar").click(); /* o reinício é do jogo, não nosso */
@@ -422,6 +495,8 @@
       $(sel).addEventListener("click", function () {
         stopWatching();
         room = null;
+        partida = null;
+        GAME.setTimer(false);
         GAME.showScreen("#tela-boas-vindas");
       });
     });

@@ -40,6 +40,9 @@ function bootar() {
     prepareTeamSetup: function (c) { GAME._empresa = c; },
     LICENSE_MIN: LICENSE_MIN,
     gradeFor: function (score) { return { granted: score >= LICENSE_MIN }; },
+    setTimer: function (on) { GAME._timer = !!on; },
+    startSetupTimer: function () { GAME._setupTimer = true; },
+    beginGame: function (c, t) { GAME._comecou = { company: c, teams: t }; },
     showScreen: function (s) { telas.push(s); },
     TEAM_SLOTS: 4, onPhase: null, onFinalScore: null
   };
@@ -51,14 +54,22 @@ function bootar() {
   };
   win.firebase.database.ServerValue = { TIMESTAMP: fb.TS };
 
+  var relogios = [];
   var ctx = {
     window: win, document: { readyState: "complete", querySelector: dom.el },
-    console: console
+    console: console,
+    setInterval: function (fn) { relogios.push(fn); return relogios.length; },
+    clearInterval: function (id) { relogios[id - 1] = null; }
+  };
+  ctx.avancar = function (n) {
+    for (var i = 0; i < n; i++) {
+      relogios.slice().forEach(function (fn) { if (fn) fn(); });
+    }
   };
   ctx.window.document = ctx.document;
   vm.createContext(ctx);
   vm.runInContext(fs.readFileSync("assets/js/online.js", "utf8"), ctx, { filename: "online.js" });
-  return { dom: dom, fb: fb, GAME: GAME, telas: telas };
+  return { dom: dom, fb: fb, GAME: GAME, telas: telas, avancar: ctx.avancar };
 }
 
 /* ---------- 1. criar sala ---------- */
@@ -238,6 +249,88 @@ t5.GAME.onFinalScore(alto);
 ok(t5.dom.el("#duelo-licenca").classList.contains("oculto"), "deu veredito de licença sem os dois placares");
 ok(t5.dom.el("#duelo-eles-status").textContent === "—", "inventou selo para quem não terminou");
 secao("sem recado antes da hora");
+
+/* ---------- largada conjunta ---------- */
+function naSala() {
+  var t = bootar();
+  t.dom.el("#nome-equipe-online").value = "Nós";
+  t.dom.el("#btn-criar-sala").click();
+  return t;
+}
+
+/* entrar na sala liga o relógio; sair desliga */
+var r0 = naSala();
+ok(r0.GAME._timer === true, "entrar na sala não ligou o cronômetro");
+r0.dom.el("#btn-voltar-online").click();
+ok(r0.GAME._timer === false, "sair da sala não desligou o cronômetro");
+secao("cronômetro segue a sala");
+
+/* o cadastro abre com prazo */
+var r1 = naSala();
+r1.fb.write("salas/KQ7D/equipes/b", { nome: "Eles", fase: 0 });
+r1.dom.el("#btn-comecar-online").click();
+ok(r1.GAME._setupTimer === true, "cadastro abriu sem prazo");
+secao("prazo do cadastro");
+
+/* pronta a nossa, o jogo NÃO começa: espera a outra */
+var r2 = naSala();
+r2.fb.write("salas/KQ7D/equipes/b", { nome: "Eles", fase: 0 });
+var assumiu = r2.GAME.onTeamReady("Amanari", [{ name: "P1" }]);
+ok(assumiu === true, "online devia assumir a largada e devolver true");
+ok(r2.fb.read("salas/KQ7D/equipes/a/pronto") === true, "não se declarou pronta na sala");
+ok(r2.telas[r2.telas.length - 1] === "#tela-largada", "não abriu a tela de largada");
+ok(!r2.GAME._comecou, "começou o jogo sozinha, sem esperar a outra equipe");
+ok(/Aguardando a outra equipe/.test(r2.dom.el("#largada-status").textContent),
+   "não avisou que está esperando: " + r2.dom.el("#largada-status").textContent);
+ok(/cadastrando/.test(r2.dom.el("#largada-eles").textContent),
+   "não mostrou o estado do adversário: " + r2.dom.el("#largada-eles").textContent);
+secao("espera a outra equipe");
+
+/* a outra fica pronta: conta 3, 2, 1 e as duas começam */
+r2.fb.write("salas/KQ7D/equipes/b/pronto", true);
+ok(/prontas/.test(r2.dom.el("#largada-status").textContent), "não anunciou as duas prontas");
+ok(!r2.dom.el("#largada-conta").classList.contains("oculto"), "contagem não apareceu");
+ok(r2.dom.el("#largada-conta").textContent === 3, "contagem não começou em 3");
+ok(!r2.GAME._comecou, "começou antes de a contagem terminar");
+r2.avancar(1);
+ok(r2.dom.el("#largada-conta").textContent === 2, "contagem não desceu para 2");
+r2.avancar(1);
+ok(!r2.GAME._comecou, "começou em 1, antes da hora");
+r2.avancar(1);
+ok(!!r2.GAME._comecou, "não começou o jogo ao fim da contagem");
+ok(r2.GAME._comecou.company === "Amanari", "empresa perdida entre o cadastro e a largada");
+ok(r2.GAME._comecou.teams.length === 1, "responsáveis perdidos entre o cadastro e a largada");
+secao("largada conjunta");
+
+/* fora de sala, o jogo começa sozinho (modo local não pode travar) */
+var r3 = bootar();
+ok(r3.GAME.onTeamReady("X", []) === false,
+   "sem sala, onTeamReady tem que devolver false para o jogo começar sozinho");
+secao("modo local não trava");
+
+/* ---------- estouro de prazo pesa como erro ---------- */
+var fonte = /function worstPointsFor\(decision\) \{[\s\S]*?\n  \}/.exec(GAME_SRC)[0];
+var MULTI_SELECT_FAIL_POINTS = Number(/var MULTI_SELECT_FAIL_POINTS = (-?\d+);/.exec(GAME_SRC)[1]);
+var worstPointsFor = new Function("MULTI_SELECT_FAIL_POINTS",
+  fonte + "; return worstPointsFor;")(MULTI_SELECT_FAIL_POINTS);
+
+ok(worstPointsFor({ type: "choice", options: [{ points: 10 }, { points: -10 }, { points: -4 }] }) === -10,
+   "escolha: pior caso devia ser a opção mais cara");
+ok(worstPointsFor({ type: "multiSelect" }) === MULTI_SELECT_FAIL_POINTS,
+   "múltipla escolha: pior caso devia ser MULTI_SELECT_FAIL_POINTS");
+ok(worstPointsFor({ type: "sorting", cards: [1, 2, 3], pointsPerMiss: -4 }) === -12,
+   "ordenação: pior caso devia ser todos os cartões errados");
+
+/* não responder não pode ser melhor do que responder errado */
+ok(worstPointsFor({ type: "choice", options: [{ points: 10 }, { points: -10 }] }) < 0,
+   "estouro de prazo com pontuação não-negativa: deixar o relógio correr viraria estratégia");
+
+/* a escala da nota e o estouro têm que usar a MESMA conta */
+ok(/return s \+ worstPointsFor\(decision\);/.test(GAME_SRC),
+   "MIN_POINTS parou de usar worstPointsFor: as duas contas vão divergir");
+ok(/points: worstPointsFor\(decision\)/.test(GAME_SRC),
+   "evaluateTimeout parou de usar worstPointsFor");
+secao("estouro pesa como erro");
 
 console.log(falhas ? "\n" + falhas + " FALHA(S)" : "\ntodos os testes passaram");
 process.exit(falhas ? 1 : 0);
