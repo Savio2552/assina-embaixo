@@ -159,7 +159,7 @@
           type: "sorting",
           prompt: "Classifique cada item da planilha do processo.",
           context:
-            "Arraste os cartões — ou toque em um cartão e depois na caixa de destino. Cada acerto vale 5 pontos; cada erro tira 5.",
+            "Escolha uma das duas categorias em cada item. Cada acerto vale 5 pontos; cada erro tira 5.",
           legalBasis: "Art. 53 e §§ 1º a 3º, " + LAW,
           maxPoints: 40,
           pointsPerHit: 5,
@@ -1006,9 +1006,7 @@
       obligationsMet: true,
       selection: null,
       checked: [],
-      sorting: {},
-      dragging: null,
-      selectedCard: null
+      sorting: {}
     };
   }
 
@@ -1336,7 +1334,6 @@
     state.selection = null;
     state.checked = [];
     state.sorting = {};
-    state.selectedCard = null;
 
     var html = turnBannerHtml() +
       '<h2 class="enunciado">' + fillCompany(decision.prompt) + "</h2>" +
@@ -1404,95 +1401,65 @@
   }
 
   /* ---------------------------------------------------------------------
-     6. TRIAGEM: arrastar ou tocar
+     6. CLASSIFICAÇÃO DIRETA
      --------------------------------------------------------------------- */
 
   function sortingHtml(decision) {
-    var cards = decision.cards.map(function (c, i) {
-      return '<button type="button" class="cartao" draggable="true" data-id="' + c.id + '">' +
-        '<span class="tag">Item ' + pad2(i + 1) + "</span>" + fillCompany(c.txt) + "</button>";
+    var items = decision.cards.map(function (c, i) {
+      var options = decision.zones.map(function (z) {
+        return '<button type="button" class="classificacao__opcao" data-destino="' + z.id +
+          '" aria-pressed="false">' + fillCompany(z.title) + "</button>";
+      }).join("");
+      return '<div class="classificacao__item' + (i ? ' oculto' : '') + '" data-id="' + c.id + '">' +
+        '<p class="classificacao__texto"><span class="tag">Item ' + pad2(i + 1) + "</span>" +
+        fillCompany(c.txt) + "</p>" +
+        '<div class="classificacao__opcoes" role="group" aria-label="Classificação do item ' + (i + 1) + '">' +
+        options + "</div></div>";
     }).join("");
 
-    var caixas = decision.zones.map(function (z) {
-      return '<div class="zona" data-destino="' + z.id + '" role="button" tabindex="0" ' +
-        'aria-label="Classificar em ' + fillCompany(z.title) + '">' +
-        '<div class="zona__titulo"><span>' + fillCompany(z.title) + "</span><span data-contador='" + z.id + "'>0</span></div>" +
-        '<div class="zona__conteudo"></div></div>';
-    }).join("");
-
-    return '<div class="triagem">' +
-      '<div class="triagem__pilha"><div class="zona zona--pilha" data-destino="pilha" role="button" tabindex="0" aria-label="Devolver à pilha">' +
-      '<div class="zona__titulo"><span>Itens a classificar</span><span id="contador-pilha">' + decision.cards.length + "</span></div>" +
-      '<div class="zona__conteudo">' + cards + "</div></div></div>" +
-      caixas + "</div>";
+    return '<p class="triagem__instrucao">Leia um item da planilha por vez e marque a categoria correta.</p>' +
+      '<p class="classificacao__progresso"><span id="contador-classificacao">Item 1 de ' + decision.cards.length +
+      '</span> · <span id="contador-respondidos">0 respondidos</span></p>' +
+      '<div class="classificacao">' + items + '</div><div class="classificacao__nav">' +
+      '<button type="button" class="botao botao--fantasma" id="btn-item-anterior" disabled>Item anterior</button>' +
+      '<button type="button" class="botao botao--fantasma" id="btn-item-proximo" disabled>Próximo item</button></div>';
   }
 
   function bindSorting(decision) {
-    var zones = Array.prototype.slice.call(document.querySelectorAll(".zona"));
-    var cards = Array.prototype.slice.call(document.querySelectorAll(".cartao"));
+    var items = Array.prototype.slice.call(document.querySelectorAll(".classificacao__item"));
+    var options = Array.prototype.slice.call(document.querySelectorAll(".classificacao__opcao"));
+    var currentIndex = 0;
 
-    function moveCard(id, target) {
-      var card = document.querySelector('.cartao[data-id="' + id + '"]');
-      var zone = document.querySelector('.zona[data-destino="' + target + '"] .zona__conteudo');
-      if (!card || !zone) return;
-      zone.appendChild(card);
-      card.classList.remove("selecionado");
-      state.selectedCard = null;
-      if (target === "pilha") delete state.sorting[id];
-      else state.sorting[id] = target;
-      updateCounters(decision);
+    function showItem(index) {
+      currentIndex = Math.max(0, Math.min(items.length - 1, index));
+      items.forEach(function (item, i) { item.classList.toggle("oculto", i !== currentIndex); });
+      $("#contador-classificacao").textContent = "Item " + (currentIndex + 1) + " de " + items.length;
+      $("#btn-item-anterior").disabled = currentIndex === 0;
+      $("#btn-item-proximo").classList.toggle("oculto", currentIndex === items.length - 1);
+      $("#btn-item-proximo").disabled = !state.sorting[items[currentIndex].getAttribute("data-id")];
     }
 
-    cards.forEach(function (c) {
-      c.addEventListener("click", function () {
-        var inStack = c.closest(".zona").getAttribute("data-destino") === "pilha";
-        if (!inStack) { moveCard(c.getAttribute("data-id"), "pilha"); return; }
-        var wasSelected = c.classList.contains("selecionado");
-        cards.forEach(function (o) { o.classList.remove("selecionado"); });
-        if (wasSelected) { state.selectedCard = null; return; }
-        c.classList.add("selecionado");
-        state.selectedCard = c.getAttribute("data-id");
-      });
-      c.addEventListener("dragstart", function (ev) {
-        state.dragging = c.getAttribute("data-id");
-        if (ev.dataTransfer) {
-          ev.dataTransfer.effectAllowed = "move";
-          ev.dataTransfer.setData("text/plain", state.dragging);
-        }
-      });
-      c.addEventListener("dragend", function () { state.dragging = null; });
-    });
-
-    zones.forEach(function (z) {
-      var target = z.getAttribute("data-destino");
-      z.addEventListener("dragover", function (ev) { ev.preventDefault(); z.classList.add("sobre"); });
-      z.addEventListener("dragleave", function () { z.classList.remove("sobre"); });
-      z.addEventListener("drop", function (ev) {
-        ev.preventDefault();
-        z.classList.remove("sobre");
-        var id = (ev.dataTransfer && ev.dataTransfer.getData("text/plain")) || state.dragging;
-        if (id) moveCard(id, target);
-      });
-      z.addEventListener("click", function (ev) {
-        if (ev.target.closest(".cartao")) return;
-        if (state.selectedCard) moveCard(state.selectedCard, target);
-      });
-      z.addEventListener("keydown", function (ev) {
-        if (ev.key !== "Enter" && ev.key !== " ") return;
-        ev.preventDefault();
-        if (state.selectedCard) moveCard(state.selectedCard, target);
+    options.forEach(function (option) {
+      option.addEventListener("click", function () {
+        var item = option.closest(".classificacao__item");
+        var id = item.getAttribute("data-id");
+        state.sorting[id] = option.getAttribute("data-destino");
+        Array.prototype.forEach.call(item.querySelectorAll(".classificacao__opcao"), function (other) {
+          other.setAttribute("aria-pressed", other === option ? "true" : "false");
+        });
+        item.classList.add("classificacao__item--respondido");
+        updateCounters(decision);
+        $("#btn-item-proximo").disabled = false;
       });
     });
+    $("#btn-item-anterior").addEventListener("click", function () { showItem(currentIndex - 1); });
+    $("#btn-item-proximo").addEventListener("click", function () { showItem(currentIndex + 1); });
   }
 
   function updateCounters(decision) {
     var classificados = Object.keys(state.sorting).length;
-    $("#contador-pilha").textContent = String(decision.cards.length - classificados);
-    decision.zones.forEach(function (z) {
-      var n = decision.cards.filter(function (c) { return state.sorting[c.id] === z.id; }).length;
-      var target = document.querySelector('[data-contador="' + z.id + '"]');
-      if (target) target.textContent = String(n);
-    });
+    var counter = $("#contador-respondidos");
+    if (counter) counter.textContent = classificados + " respondidos";
     $("#btn-registrar").disabled = classificados !== decision.cards.length;
   }
 
@@ -2086,6 +2053,7 @@
     stopTimer(); /* sair da partida não pode deixar um prazo correndo atrás */
     showScreen("#tela-boas-vindas");
     react("#mascote-capa", "idle", "Quem assina o trabalho.", true);
+    react("#mascote-capa-mobile", "idle", "Bem-vindo ao processo!", true);
   }
 
   function restartProcess() {
@@ -2112,6 +2080,10 @@
       var el = $(id);
       if (el) el.classList.toggle("oculto", id !== selector);
     });
+    document.body.classList.toggle("modo-jogo", selector === "#tela-jogo");
+    document.body.classList.toggle("modo-capa", selector === "#tela-boas-vindas");
+    document.body.classList.toggle("modo-cadastro",
+      selector === "#tela-abertura" || selector === "#tela-equipes" || selector === "#tela-online");
     if (selector === "#tela-boas-vindas") $("#faixa-folha").textContent = "Fl. 00 · capa";
     else if (selector === "#tela-online") $("#faixa-folha").textContent = "Fl. 00 · sala";
     else if (selector === "#tela-equipes") $("#faixa-folha").textContent = "Fl. 00 · responsáveis";
@@ -2202,6 +2174,8 @@
     renderLogos();
     mountMascot("#mascote-capa");
     speak("#mascote-capa", "Bem-vindo ao processo!", true);
+    mountMascot("#mascote-capa-mobile");
+    speak("#mascote-capa-mobile", "Bem-vindo ao processo!", true);
     mountMascot("#mascote-abertura");
     speak("#mascote-abertura", "Como vai se chamar a empresa?", true);
 
