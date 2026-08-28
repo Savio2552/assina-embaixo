@@ -55,19 +55,97 @@
 
   function serverNow() { return Date.now() + serverOffset; }
 
-  /* O instante em que o cadastro abriu é da sala, gravado por quem chegar
-     primeiro. As regras só aceitam a primeira gravação, então a corrida
-     entre as duas equipes se resolve sozinha: a perdedora lê o valor que a
-     vencedora escreveu. */
-  function prazoDoCadastro(done) {
-    var ref = room.ref.child("cadastroDe");
-    ref.once("value", function (snap) {
-      if (snap.exists()) return done(snap.val());
-      ref.set(window.firebase.database.ServerValue.TIMESTAMP, function () {
-        ref.once("value", function (outra) { done(outra.val()); },
-                 function () { done(null); });
+  /* -----------------------------------------------------------------------
+     PRAZO DO CADASTRO
+
+     O relógio da escolha dos responsáveis é da SALA, não de cada equipe: as
+     duas telas contam para o MESMO instante final. O instante de abertura
+     mora em salas/<código>/cadastroDe e é gravado por quem chegar primeiro.
+
+     Duas garantias, porque uma só não basta:
+
+     - o listener (não uma leitura solta) mantém as duas telas convergindo.
+       Quem abre a tela antes de o valor existir começa segurando o relógio
+       em 2:00 e passa a contar quando o valor chega; quem tenta gravar e
+       perde a corrida recebe o valor da outra equipe pelo próprio listener.
+     - se o valor NUNCA chegar — regras do Firebase não publicadas, banco
+       fora do ar — a tela conta o prazo local E DIZ ISSO em voz alta. Foi
+       exatamente esse silêncio que escondeu o bug: cada equipe ganhava dois
+       minutos próprios e nada na tela denunciava.
+     --------------------------------------------------------------------- */
+
+  var prazoRef = null;
+  var prazoOuvinte = null;
+  var cadastroDe = null;     /* instante de abertura, em hora de servidor */
+  var prazoPedido = false;   /* já tentamos gravar: uma tentativa por tela */
+  var prazoLocal = 0;        /* quando ESTA tela abriu, se a sala não responder */
+  var prazoCombinado = null; /* null = ainda esperando; true/false = veredito */
+
+  function abrirPrazoDoCadastro() {
+    soltarPrazo();
+    prazoRef = room.ref.child("cadastroDe");
+    cadastroDe = null;
+    prazoPedido = false;
+    prazoCombinado = null;
+    prazoLocal = serverNow();
+    avisarPrazo();
+
+    prazoOuvinte = function (snap) {
+      var v = snap.val();
+      if (typeof v === "number") {
+        cadastroDe = v;
+        prazoCombinado = true;
+        return avisarPrazo();
+      }
+      /* Sem valor: ou ninguém abriu ainda, ou a nossa gravação foi recusada
+         e o cliente desfez a estimativa local. Tentamos uma vez só — as
+         regras aceitam apenas a primeira gravação, então é o servidor que
+         desempata entre as duas equipes. */
+      cadastroDe = null;
+      if (prazoPedido) { prazoCombinado = false; return avisarPrazo(); }
+      prazoPedido = true;
+      prazoRef.set(window.firebase.database.ServerValue.TIMESTAMP, function (err) {
+        if (err) { prazoCombinado = false; avisarPrazo(); }
       });
-    }, function () { done(null); });
+    };
+
+    prazoRef.on("value", prazoOuvinte, function () {
+      prazoCombinado = false;
+      avisarPrazo();
+    });
+  }
+
+  function soltarPrazo() {
+    if (prazoRef && prazoOuvinte) prazoRef.off("value", prazoOuvinte);
+    prazoRef = null;
+    prazoOuvinte = null;
+    prazoCombinado = null;
+    avisarPrazo();
+  }
+
+  /* Enquanto a sala não responde, o relógio fica parado em 2:00 em vez de
+     começar a correr por conta própria: adiantar aqui daria menos tempo a
+     esta equipe do que à outra. */
+  function restanteDoCadastro() {
+    if (cadastroDe === null) {
+      if (prazoCombinado !== false) return GAME.SETUP_SECONDS;
+      return (prazoLocal + GAME.SETUP_SECONDS * 1000 - serverNow()) / 1000;
+    }
+    return (cadastroDe + GAME.SETUP_SECONDS * 1000 - serverNow()) / 1000;
+  }
+
+  function avisarPrazo() {
+    var box = $("#aviso-prazo-cadastro");
+    if (!box) return;
+    if (prazoCombinado === false) {
+      box.textContent = "O prazo não pôde ser combinado com a outra equipe: " +
+        "esta tela está contando os seus próprios 2 minutos. Publique as regras " +
+        "de firebase/database.rules.json no console do Firebase.";
+      box.classList.remove("oculto");
+    } else {
+      box.textContent = "";
+      box.classList.add("oculto");
+    }
   }
 
   /* -----------------------------------------------------------------------
@@ -210,11 +288,8 @@
        chegam ao mesmo nome sem trocar uma mensagem sequer. */
     GAME.prepareTeamSetup(GAME.companyForRoom(room.code), true);
 
-    prazoDoCadastro(function (inicio) {
-      if (!inicio) return GAME.startSetupTimer(); /* sem instante: prazo local */
-      var fim = inicio + GAME.SETUP_SECONDS * 1000;
-      GAME.startSetupTimer(function () { return (fim - serverNow()) / 1000; });
-    });
+    abrirPrazoDoCadastro();
+    GAME.startSetupTimer(restanteDoCadastro);
   }
 
   /* -----------------------------------------------------------------------
@@ -442,6 +517,7 @@
   GAME.onTeamReady = function (company, teams) {
     if (!room) return false;
     partida = { company: company, teams: teams };
+    soltarPrazo(); /* o cadastro acabou: o relógio da sala não nos serve mais */
     room.ref.child("equipes/" + room.side).update({ pronto: true });
     $("#largada-nos").textContent = "pronta";
     $("#largada-eles").textContent = "—";
@@ -514,6 +590,7 @@
 
     $("#btn-recomecar-duelo").addEventListener("click", function () {
       stopWatching();
+      soltarPrazo();
       room = null;
       partida = null;
       meuPlacar = null;
@@ -529,6 +606,7 @@
     ["#btn-voltar-online", "#btn-voltar-online-2"].forEach(function (sel) {
       $(sel).addEventListener("click", function () {
         stopWatching();
+        soltarPrazo();
         room = null;
         partida = null;
         GAME.setTimer(false);

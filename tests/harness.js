@@ -64,11 +64,23 @@ function makeFirebase() {
     listeners.slice().forEach(function (l) { l.cb({ val: function () { return read(l.path); } }); });
   }
 
+  /* Regras do banco, do jeito mais simples que serve ao teste: uma função
+     por caminho que devolve true para RECUSAR a gravação. É o que permite
+     ensaiar "as regras não foram publicadas" sem falar com o Firebase. */
+  var recusas = {};
+  function recusada(path, valor) {
+    var fn = recusas[path];
+    return !!fn && fn(read(path), valor);
+  }
+
   function ref(path) {
     return {
       _path: path,
       child: function (p) { return ref(path + "/" + p); },
-      set: function (v, cb) { write(path, v); if (cb) cb(null); },
+      set: function (v, cb) {
+        if (recusada(path, v)) { if (cb) cb(new Error("permission_denied")); return; }
+        write(path, v); if (cb) cb(null);
+      },
       update: function (obj) { Object.keys(obj).forEach(function (k) { write(path + "/" + k, obj[k]); }); },
       once: function (_e, cb, errCb) {
         var v = read(path);
@@ -90,6 +102,7 @@ function makeFirebase() {
     api: { apps: [], initializeApp: function () { this.apps.push(1); },
            database: function () { var d = function () {}; d.ref = ref; return { ref: ref }; } },
     dump: function () { return JSON.parse(JSON.stringify(store)); },
+    recusar: function (path, fn) { recusas[path] = fn || function () { return true; }; },
     write: write, read: read, TS: TS
   };
 }

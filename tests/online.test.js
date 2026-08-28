@@ -382,5 +382,34 @@ ok(c4.fb.read("salas/KQ7D/cadastroDe") === original,
    "a segunda equipe sobrescreveu o instante de abertura do cadastro");
 secao("abertura gravada uma vez só");
 
+/* O prazo combinado não pode falhar em silêncio.
+
+   Foi assim que o bug real escapou: com as regras do Firebase ainda não
+   publicadas, a gravação de cadastroDe era recusada, cada tela caía num
+   prazo local e nada denunciava — as duas equipes jogavam com dois minutos
+   próprios achando que dividiam o mesmo relógio. */
+var c5 = naSala();
+c5.fb.recusar("salas/KQ7D/cadastroDe");
+c5.fb.write("salas/KQ7D/equipes/b", { nome: "Eles", fase: 0 });
+c5.dom.el("#btn-comecar-online").click();
+var aviso = c5.dom.el("#aviso-prazo-cadastro");
+ok(!aviso.classList.contains("oculto"), "prazo recusado passou em silêncio");
+ok(/regras/.test(aviso.textContent), "o aviso não diz o que fazer: " + aviso.textContent);
+ok(Math.abs(c5.GAME._restante() - SETUP_SECONDS) < 2,
+   "sem prazo de sala, o prazo local devia começar cheio, veio " + Math.round(c5.GAME._restante()));
+ok(c1.dom.el("#aviso-prazo-cadastro").classList.contains("oculto"),
+   "avisou sem motivo quando o prazo foi combinado direito");
+secao("prazo não combinado avisa na tela");
+
+/* Perder a corrida não pode deixar a tela no prazo local: o listener tem
+   que trazer o relógio da outra equipe quando ele chegar. */
+c5.fb.write("salas/KQ7D/cadastroDe", Date.now() - 40000);
+ok(c5.dom.el("#aviso-prazo-cadastro").classList.contains("oculto"),
+   "o aviso ficou na tela depois de o prazo da sala chegar");
+var resta5 = c5.GAME._restante();
+ok(Math.abs(resta5 - (SETUP_SECONDS - 40)) < 2,
+   "não convergiu para o relógio da outra equipe: viu " + Math.round(resta5) + "s");
+secao("converge para quem abriu o prazo");
+
 console.log(falhas ? "\n" + falhas + " FALHA(S)" : "\ntodos os testes passaram");
 process.exit(falhas ? 1 : 0);

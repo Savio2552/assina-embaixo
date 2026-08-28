@@ -40,6 +40,7 @@ assets/
 └── img/                     logos originais da Ufra e do curso
 firebase/
 └── database.rules.json      regras de segurança do Realtime Database
+firebase.json               aponta as regras para o `firebase deploy`
 tests/
 ├── harness.js               DOM mínimo + Realtime Database em memória
 └── online.test.js           testes do modo duelo
@@ -67,8 +68,21 @@ padrão absoluto a partir de 70 pontos, e as duas podem sair sem licença.
 O relógio e a sala existem **só no modo online**: o individual, o jogo de
 sala e o `assina-embaixo.html` seguem sem prazo e sem rede.
 
-Para funcionar, as regras de `firebase/database.rules.json` precisam estar
-publicadas no console do Firebase.
+### Publicar as regras
+
+As regras de `firebase/database.rules.json` **precisam estar publicadas** —
+não basta editar o arquivo aqui. É delas que depende o prazo compartilhado:
+sem a regra de `cadastroDe`, o banco recusa a gravação e cada equipe volta a
+contar dois minutos próprios. Quando isso acontece, a tela do cadastro diz
+na cara que o prazo não foi combinado, em vez de fingir que está tudo certo.
+
+```
+firebase login          # se o token tiver expirado: firebase login --reauth
+firebase deploy --only database
+```
+
+Ou cole o conteúdo do arquivo em *Realtime Database → Regras* no console e
+publique.
 
 ## Testes
 
