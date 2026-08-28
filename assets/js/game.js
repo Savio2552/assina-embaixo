@@ -641,8 +641,8 @@
     development: [],
     facts: [
       ["Instituição", "Ufra"],
-      ["Disciplina", "Administração"],
-      ["Professor", "Williams Jorge da Cruz Macêdo · williams.macedo@ufra.edu.br"],
+      ["Disciplina", "Licenciamento Ambiental"],
+      ["Orientadores", "Williams Jorge da Cruz Macêdo · williams.macedo@ufra.edu.br · Salma Saráty de Carvalho · salma.saraty@ufra.edu.br"],
       ["Base legal", LAW],
       ["Formato", "Simulação didática"],
       ["Ano", "2026"]
@@ -1670,13 +1670,39 @@
      processo. O placar guarda a contribuição de cada responsável.
      --------------------------------------------------------------------- */
 
-  var TEAM_SLOTS = CONTENT.length;
+  /* O tamanho da equipe é do modo multiplayer (4 x 4), não do roteiro:
+     quatro responsáveis para cinco fases. Quem cobre a fase que sobra é
+     quem abriu o processo — a conta está em phasesForSlot(). */
+  var TEAM_SLOTS = 4;
   var teamDraft = [];
+
+  /* Fases que cabem a uma vaga. É o mesmo rodízio que currentTeam() usa na
+     hora de jogar, escrito uma vez só para os dois não divergirem. */
+  function phasesForSlot(slot) {
+    var phases = [];
+    for (var p = 0; p < CONTENT.length; p++) {
+      if (p % TEAM_SLOTS === slot) phases.push(p);
+    }
+    return phases;
+  }
+
+  function themeLabelFor(slot) {
+    var titles = phasesForSlot(slot).map(function (p) { return CONTENT[p].title; });
+    return (titles.length > 1 ? "Temas: " : "Tema: ") + fillCompany(titles.join(" · "));
+  }
+
+  function teamSetupNote() {
+    if (CONTENT.length <= TEAM_SLOTS) {
+      return "Cadastre " + TEAM_SLOTS + " pessoas · uma para cada tema";
+    }
+    return "Cadastre " + TEAM_SLOTS + " pessoas para " + CONTENT.length +
+      " fases · quem abre o processo também assina a decisão final";
+  }
 
   function renderTeamSetup() {
     if (!teamDraft.length) {
       for (var i = 0; i < TEAM_SLOTS; i++) {
-        teamDraft.push({ character: i % CHARACTERS.length, name: "", phaseIndex: i });
+        teamDraft.push({ character: i % CHARACTERS.length, name: "", slot: i });
       }
     }
 
@@ -1689,7 +1715,7 @@
         '<button type="button" class="seta" data-i="' + i + '" data-dir="1" aria-label="Próximo boneco">&#9654;</button>' +
         "</div>" +
         '<p class="equipe__boneco" id="fig-nome-' + i + '"></p>' +
-        '<p class="equipe__tema">Tema: ' + fillCompany(CONTENT[c.phaseIndex].title) + '</p>' +
+        '<p class="equipe__tema">' + themeLabelFor(c.slot) + '</p>' +
         '<input class="campo-form__entrada equipe__campo" id="equipe-nome-' + i + '" type="text" ' +
         'maxlength="24" placeholder="nome da pessoa" autocomplete="off" value="' + fillCompany(c.name) + '">' +
         "</div>";
@@ -1700,6 +1726,8 @@
         cycleCharacter(Number(b.getAttribute("data-i")), Number(b.getAttribute("data-dir")));
       });
     });
+
+    $("#nota-equipes").textContent = teamSetupNote();
 
     teamDraft.forEach(function (c, i) {
       var field = $("#equipe-nome-" + i);
@@ -1759,12 +1787,12 @@
         character: CHARACTERS[c.character].id,
         points: 0,
         decisions: 0,
-        phaseIndex: c.phaseIndex
+        slot: c.slot
       };
     });
 
     if (teams.length < TEAM_SLOTS) {
-      errorBox.textContent = "Informe o nome das cinco pessoas responsáveis, uma para cada tema.";
+      errorBox.textContent = "Informe o nome das " + TEAM_SLOTS + " pessoas responsáveis.";
       errorBox.classList.remove("oculto");
       return;
     }
@@ -1789,9 +1817,8 @@
 
   function currentTeam() {
     if (!state.teams.length) return null;
-    return state.teams.filter(function (person) {
-      return person.phaseIndex === state.phaseIndex;
-    })[0] || state.teams[state.phaseIndex % state.teams.length];
+    /* teams[] sai de teamDraft na ordem, então índice e vaga coincidem */
+    return state.teams[state.phaseIndex % state.teams.length];
   }
 
   function currentCharacter() {
