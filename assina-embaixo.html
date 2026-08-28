@@ -2466,6 +2466,65 @@ ao processo"><span>Bem-vindo<br>ao processo</span></h2>
     "Cupuaçu Cinco Estrelas ME"
   ];
 
+  /* ---------------------------------------------------------------------
+     1-C. SALA — código da partida e sorteio compartilhado
+
+     No modo online as duas equipes precisam receber a MESMA empresa. Em vez
+     de o servidor sortear e distribuir, o nome é derivado do código da sala:
+     mesmo código, mesmo nome, calculado nas duas pontas sem ida à rede.
+     Uma coisa a menos para sincronizar — e o sorteio continua funcionando
+     com a internet caindo no meio.
+
+     O alfabeto do código não tem O/0 nem I/1: o código é dito em voz alta
+     numa sala de aula, e esse é o par que sempre se confunde.
+     --------------------------------------------------------------------- */
+
+  var ROOM_ALPHABET = "ACDEFGHJKLMNPQRTUVWXY34679";
+  var ROOM_CODE_LENGTH = 4;
+
+  function newRoomCode() {
+    var out = "";
+    var i;
+    if (window.crypto && window.crypto.getRandomValues) {
+      var bytes = new Uint8Array(ROOM_CODE_LENGTH);
+      window.crypto.getRandomValues(bytes);
+      for (i = 0; i < ROOM_CODE_LENGTH; i++) {
+        out += ROOM_ALPHABET.charAt(bytes[i] % ROOM_ALPHABET.length);
+      }
+      return out;
+    }
+    for (i = 0; i < ROOM_CODE_LENGTH; i++) out += pickRandom(ROOM_ALPHABET.split(""));
+    return out;
+  }
+
+  /* Perdoa o que é seguro perdoar — minúscula, espaço, hífen — e recusa o
+     resto. Nada de adivinhar que o "O" digitado "era pra ser Q": mandar a
+     equipe para a sala errada em silêncio é pior do que pedir para digitar
+     de novo, porque as duas só descobririam no fim, com empresas
+     diferentes na tela. Devolve "" quando não dá para confiar. */
+  function normalizeRoomCode(raw) {
+    var code = String(raw || "").toUpperCase().replace(/[\s-]+/g, "");
+    if (code.length !== ROOM_CODE_LENGTH) return "";
+    for (var i = 0; i < code.length; i++) {
+      if (ROOM_ALPHABET.indexOf(code.charAt(i)) < 0) return "";
+    }
+    return code;
+  }
+
+  /* FNV-1a: espalha bem para strings curtas e cabe em cinco linhas. */
+  function hashCode(text) {
+    var h = 0x811c9dc5;
+    for (var i = 0; i < text.length; i++) {
+      h ^= text.charCodeAt(i);
+      h = (h + (h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24)) >>> 0;
+    }
+    return h;
+  }
+
+  function companyForRoom(code) {
+    return COMPANY_NAME_SUGGESTIONS[hashCode(code) % COMPANY_NAME_SUGGESTIONS.length];
+  }
+
   var BONUS_ALL_OBLIGATIONS_MET = { name: "Cumprimento de todas as obrigações financeiras", points: 15 };
   var BONUS_ACCURACY_MAX = 10;
   var MULTI_SELECT_FAIL_POINTS = -10;
