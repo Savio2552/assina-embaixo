@@ -762,6 +762,8 @@ ul, ol { padding: 0; list-style: none; }
   body.modo-jogo .cabecalho,
   body.modo-capa .cabecalho,
   body.modo-cadastro .cabecalho { display: none; }
+  body.modo-capa .faixa { display: none; }
+  body.modo-capa #tela-boas-vindas { padding-top: 10px; }
   .picote { background-size: var(--picote) 26px; }
   .abertura__cadastro { display: contents; }
   .abertura__cadastro .protocolo { order: -1; }
@@ -1142,7 +1144,41 @@ ul, ol { padding: 0; list-style: none; }
 }
 @media (max-width: 620px) {
   .capa { gap: 22px; }
-  .capa__titulo--desktop { display: none; }
+  .capa__realizacao {
+    order: -1;
+    margin-top: 0;
+    padding: 0 0 10px;
+    border-top: 0;
+    border-bottom: 0;
+  }
+  .capa__realizacao .rubrica { display: none; }
+  .capa__realizacao .logos {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: center;
+    gap: 16px;
+    margin-top: 0;
+  }
+  #logos-capa .logo {
+    display: block;
+    min-width: 0;
+    max-width: none;
+    text-align: center;
+  }
+  #logos-capa .logo:nth-child(3),
+  #logos-capa .logo__nome,
+  #logos-capa .logo__papel { display: none; }
+  #logos-capa .logo__marca {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 38px;
+  }
+  #logos-capa .logo__img {
+    max-width: 100%;
+    object-fit: contain;
+  }
   .capa__chamada-mobile {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 82px;
@@ -1657,6 +1693,12 @@ body.splash-ativa { overflow: hidden; }
   .logos { gap: 14px 22px; }
   .logo { max-width: none; }
   .logo__marca { height: 38px; }
+  body.modo-capa .capa__realizacao {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: 0;
+    border-bottom: 0;
+  }
 }
 
 /* =========================================================================
