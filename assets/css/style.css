@@ -1536,3 +1536,106 @@ body.splash-ativa { overflow: hidden; }
   .logo { max-width: none; }
   .logo__marca { height: 38px; }
 }
+
+/* =========================================================================
+   RESULTADO DO DUELO (modo online)
+
+   Duas notas lado a lado, no mesmo desenho da nota do parecer — é a mesma
+   informação, só que em dobro. A vencedora ganha peso e um carimbo; a outra
+   desbota, sem sumir. Enquanto o adversário não protocola, o lado dele fica
+   pontilhado, para a tela dizer "falta alguém" sem precisar de texto.
+   ========================================================================= */
+
+.duelo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 18px;
+  margin-top: 22px;
+}
+
+.duelo__lado {
+  border: 3px double var(--tinta);
+  padding: 20px 16px;
+  text-align: center;
+  transition: opacity 0.25s ease;
+}
+
+.duelo__lado .valor {
+  font-family: var(--fonte-dado);
+  font-size: clamp(3rem, 11vw, 4.6rem);
+  line-height: 0.9;
+  font-variant-numeric: tabular-nums;
+}
+
+.duelo__lado .de {
+  font-family: var(--fonte-dado);
+  font-size: 0.66rem;
+  letter-spacing: 0.2em;
+  color: var(--tinta-2);
+}
+
+.duelo__papel {
+  font-family: var(--fonte-dado);
+  font-size: 0.64rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--tinta-2);
+}
+
+.duelo__nome {
+  margin: 6px 0 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--tinta-3);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  overflow-wrap: anywhere;
+}
+
+.duelo__versus {
+  font-family: var(--fonte-dado);
+  font-size: 1.5rem;
+  color: var(--tinta-2);
+}
+
+/* ainda jogando: a moldura pontilhada é o próprio aviso */
+.duelo__lado--esperando { border-style: dotted; opacity: 0.6; }
+
+.duelo__lado--vence { border-color: var(--carmim); position: relative; }
+.duelo__lado--vence .valor { color: var(--carmim); }
+.duelo__lado--vence::after {
+  content: "vencedora";
+  position: absolute;
+  top: -11px;
+  left: 50%;
+  transform: translateX(-50%) rotate(-2deg);
+  padding: 2px 10px;
+  background: var(--folha);
+  border: 1px solid var(--carmim);
+  font-family: var(--fonte-dado);
+  font-size: 0.6rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--carmim);
+}
+
+.duelo__lado--perde { opacity: 0.72; }
+
+.duelo__veredito {
+  margin-top: 20px;
+  font-family: var(--fonte-dado);
+  font-size: 0.94rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: center;
+  line-height: 1.5;
+}
+
+@media (max-width: 640px) {
+  .duelo { grid-template-columns: minmax(0, 1fr); }
+  .duelo__versus { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .duelo__lado { transition: none; }
+}

@@ -40,7 +40,19 @@ assets/
 └── img/                     logos originais da Ufra e do curso
 firebase/
 └── database.rules.json      regras de segurança do Realtime Database
+tests/
+├── harness.js               DOM mínimo + Realtime Database em memória
+└── online.test.js           testes do modo duelo
 ```
+
+## Testes
+
+```
+node tests/online.test.js
+```
+
+Rodam o `online.js` de verdade contra um Firebase falso em memória — sem
+navegador, sem rede e sem tocar no banco real.
 
 O conteúdo jurídico fica isolado na constante `CONTENT`, em `assets/js/game.js`:
 dá para trocar perguntas, alternativas e fundamentos sem mexer na mecânica. Os

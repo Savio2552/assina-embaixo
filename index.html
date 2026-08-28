@@ -198,6 +198,41 @@ ao processo"><span>Bem-vindo<br>ao processo</span></h2>
 
     </section>
 
+    <!-- ================= RESULTADO DO DUELO ================= -->
+    <section class="tela oculto" id="tela-duelo">
+
+      <p class="rubrica">Resultado do duelo</p>
+      <h2 class="capa__titulo" data-eco="Parecer
+comparado"><span>Parecer<br>comparado</span></h2>
+
+      <div class="duelo">
+        <div class="duelo__lado" id="duelo-nos">
+          <p class="duelo__papel">Sua equipe</p>
+          <p class="duelo__nome" id="duelo-nos-nome">—</p>
+          <p class="valor" id="duelo-nos-placar">—</p>
+          <p class="de">de 100 pontos</p>
+        </div>
+
+        <p class="duelo__versus" aria-hidden="true">&times;</p>
+
+        <div class="duelo__lado" id="duelo-eles">
+          <p class="duelo__papel">Equipe adversária</p>
+          <p class="duelo__nome" id="duelo-eles-nome">—</p>
+          <p class="valor" id="duelo-eles-placar">—</p>
+          <p class="de">de 100 pontos</p>
+        </div>
+      </div>
+
+      <p class="duelo__veredito" id="duelo-veredito-tela">Apurando o resultado…</p>
+      <p class="capa__nota" id="duelo-espera">Esta tela se atualiza sozinha quando a outra equipe protocolar o parecer dela.</p>
+
+      <div class="acoes">
+        <button class="botao botao--principal" id="btn-ver-parecer">Ver o parecer completo</button>
+        <button class="botao botao--fantasma" id="btn-recomecar-duelo">Recomeçar o processo</button>
+      </div>
+
+    </section>
+
     <!-- ================= ABERTURA ================= -->
     <section class="tela oculto" id="tela-abertura">
       <div class="abertura">
@@ -350,6 +385,7 @@ ao processo"><span>Bem-vindo<br>ao processo</span></h2>
           <div class="acoes">
             <button class="botao botao--principal" id="btn-recomecar">Recomeçar o processo</button>
             <button class="botao botao--fantasma" id="btn-imprimir">Imprimir o parecer</button>
+            <button class="botao botao--fantasma oculto" id="btn-voltar-duelo">Voltar ao resultado</button>
           </div>
         </div>
 

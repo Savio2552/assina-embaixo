@@ -181,40 +181,81 @@
   }
 
   /* -----------------------------------------------------------------------
-     PLACAR FINAL — o duelo
+     RESULTADO DO DUELO
+
+     Duas notas lado a lado. Enquanto a outra equipe não protocola, o lado
+     dela fica pontilhado e a tela se atualiza sozinha quando o placar
+     chegar — ninguém precisa recarregar nada.
      --------------------------------------------------------------------- */
 
   var meuPlacar = null; /* o nosso placar nós já sabemos: não esperamos a volta */
 
+  var CLASSES_LADO = ["duelo__lado--vence", "duelo__lado--perde", "duelo__lado--esperando"];
+
+  function pintarLado(sel, nome, placar) {
+    $(sel + "-nome").textContent = nome || "—";
+    $(sel + "-placar").textContent = typeof placar === "number" ? placar : "—";
+    var box = $(sel);
+    CLASSES_LADO.forEach(function (c) { box.classList.remove(c); });
+    return box;
+  }
+
+  function pontos(n) { return n === 1 ? "1 ponto" : n + " pontos"; }
+
   function renderDuelo(equipes) {
     var meu = equipes[room.side] || {};
+    var outro = equipes[room.side === "a" ? "b" : "a"] || null;
+
     /* o snapshot pode chegar antes de a nossa própria escrita voltar do
        servidor; usar o número local evita um "—" piscando na tela */
-    if (typeof meu.placar !== "number" && typeof meuPlacar === "number") {
-      meu = { nome: meu.nome, placar: meuPlacar };
+    var meuP = typeof meu.placar === "number" ? meu.placar : meuPlacar;
+    var outroP = outro && typeof outro.placar === "number" ? outro.placar : null;
+
+    var nos = pintarLado("#duelo-nos", meu.nome || "Sua equipe", meuP);
+    var eles = pintarLado("#duelo-eles", (outro && outro.nome) || "Equipe adversária", outroP);
+
+    var veredito, espera = "";
+
+    if (typeof meuP !== "number") {
+      veredito = "Apurando o resultado…";
+    } else if (outroP === null) {
+      eles.classList.add("duelo__lado--esperando");
+      veredito = "Aguardando o parecer da outra equipe…";
+      espera = outro
+        ? "A equipe " + (outro.nome || "adversária") + " ainda está no processo. Esta tela se atualiza sozinha."
+        : "A outra equipe ainda não entrou na sala. Esta tela se atualiza sozinha.";
+    } else if (meuP > outroP) {
+      nos.classList.add("duelo__lado--vence");
+      eles.classList.add("duelo__lado--perde");
+      veredito = "Sua equipe venceu por " + pontos(meuP - outroP) + ".";
+    } else if (meuP < outroP) {
+      eles.classList.add("duelo__lado--vence");
+      nos.classList.add("duelo__lado--perde");
+      veredito = "A equipe adversária venceu por " + pontos(outroP - meuP) + ".";
+    } else {
+      nos.classList.add("duelo__lado--vence");
+      eles.classList.add("duelo__lado--vence");
+      veredito = "Empate: as duas fecharam o processo com " + pontos(meuP) + ".";
     }
-    var outro = equipes[room.side === "a" ? "b" : "a"];
-    var bloco = $("#bloco-duelo");
-    bloco.classList.remove("oculto");
 
-    if (!outro || typeof outro.placar !== "number") {
-      $("#duelo-veredito").textContent = "Aguardando o parecer da outra equipe…";
-      $("#duelo-placar").innerHTML =
-        linhaDuelo("Sua equipe", meu.nome, meu.placar, "") +
-        linhaDuelo("Equipe adversária", (outro && outro.nome) || "—",
-                   null, "");
-      return;
-    }
+    $("#duelo-veredito-tela").textContent = veredito;
+    var aviso = $("#duelo-espera");
+    aviso.textContent = espera;
+    aviso.classList.toggle("oculto", !espera);
 
-    var meuP = meu.placar, outroP = outro.placar;
-    var veredito = meuP > outroP ? "Sua equipe venceu."
-      : meuP < outroP ? "A outra equipe venceu."
-      : "Empate — as duas equipes fecharam o processo com a mesma nota.";
+    renderBlocoParecer(meu, outro, meuP, outroP, veredito);
+  }
 
+  /* O mesmo resultado, resumido dentro do parecer — é ele que sai na
+     impressão, então o duelo precisa aparecer lá também. */
+  function renderBlocoParecer(meu, outro, meuP, outroP, veredito) {
+    $("#bloco-duelo").classList.remove("oculto");
     $("#duelo-veredito").textContent = veredito;
     $("#duelo-placar").innerHTML =
-      linhaDuelo("Sua equipe", meu.nome, meuP, meuP >= outroP ? "mais" : "menos") +
-      linhaDuelo("Equipe adversária", outro.nome, outroP, outroP >= meuP ? "mais" : "menos");
+      linhaDuelo("Sua equipe", meu.nome, meuP,
+                 outroP === null ? "" : meuP >= outroP ? "mais" : "menos") +
+      linhaDuelo("Equipe adversária", outro && outro.nome, outroP,
+                 outroP === null ? "" : outroP >= meuP ? "mais" : "menos");
   }
 
   function linhaDuelo(papel, nome, placar, classe) {
@@ -239,7 +280,14 @@
     if (!room) return;
     meuPlacar = score;
     publishScore(score);
+    /* watchRoom() já desenha na hora, com o que houver no banco. Redesenhar
+       aqui por fora apagaria o resultado quando NÓS terminamos em segundo:
+       o adversário já tem placar, nenhum snapshot novo viria depois e a
+       tela ficaria presa em "aguardando" para sempre. O nosso próprio
+       número não depende da volta do servidor — meuPlacar cobre isso. */
     watchRoom(renderDuelo);
+    $("#btn-voltar-duelo").classList.remove("oculto");
+    GAME.showScreen("#tela-duelo");        /* o duelo é a manchete, o parecer fica a um clique */
   };
 
   GAME.onPhase = function (phaseIndex) {
@@ -279,6 +327,23 @@
     });
 
     $("#btn-comecar-online").addEventListener("click", comecar);
+
+    $("#btn-ver-parecer").addEventListener("click", function () {
+      GAME.showScreen("#tela-final");
+    });
+
+    $("#btn-voltar-duelo").addEventListener("click", function () {
+      GAME.showScreen("#tela-duelo");
+    });
+
+    $("#btn-recomecar-duelo").addEventListener("click", function () {
+      stopWatching();
+      room = null;
+      meuPlacar = null;
+      $("#btn-voltar-duelo").classList.add("oculto");
+      $("#bloco-duelo").classList.add("oculto");
+      $("#btn-recomecar").click(); /* o reinício é do jogo, não nosso */
+    });
 
     /* dois caminhos de saída: o "Voltar" da entrada e o "Sair da sala" de
        dentro dela. Sair precisa largar o listener, senão a tela seguinte

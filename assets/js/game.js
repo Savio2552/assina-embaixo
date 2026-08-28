@@ -1998,7 +1998,7 @@
   }
 
   var SCREENS = ["#tela-boas-vindas", "#tela-online", "#tela-equipes",
-                 "#tela-abertura", "#tela-jogo", "#tela-final"];
+                 "#tela-abertura", "#tela-jogo", "#tela-duelo", "#tela-final"];
 
   function showScreen(selector) {
     SCREENS.forEach(function (id) {
@@ -2011,6 +2011,7 @@
     else if (selector === "#tela-online") $("#faixa-folha").textContent = "Fl. 00 · sala";
     else if (selector === "#tela-equipes") $("#faixa-folha").textContent = "Fl. 00 · responsáveis";
     else if (selector === "#tela-abertura") $("#faixa-folha").textContent = "Fl. 01";
+    else if (selector === "#tela-duelo") $("#faixa-folha").textContent = "Parecer comparado";
     else if (selector === "#tela-final") $("#faixa-folha").textContent = "Parecer final";
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
