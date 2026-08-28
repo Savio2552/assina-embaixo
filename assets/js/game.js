@@ -2052,8 +2052,8 @@
   function showCover() {
     stopTimer(); /* sair da partida não pode deixar um prazo correndo atrás */
     showScreen("#tela-boas-vindas");
-    react("#mascote-capa", "idle", "Quem assina o trabalho.", true);
-    react("#mascote-capa-mobile", "idle", "Bem-vindo ao processo!", true);
+    react("#mascote-capa", "ok", "Quem assina o trabalho.", true);
+    react("#mascote-capa-mobile", "ok", "Bem-vindo ao processo!", true);
   }
 
   function restartProcess() {
@@ -2173,9 +2173,9 @@
     renderCredits();
     renderLogos();
     mountMascot("#mascote-capa");
-    speak("#mascote-capa", "Bem-vindo ao processo!", true);
+    react("#mascote-capa", "ok", "Bem-vindo ao processo!", true);
     mountMascot("#mascote-capa-mobile");
-    speak("#mascote-capa-mobile", "Bem-vindo ao processo!", true);
+    react("#mascote-capa-mobile", "ok", "Bem-vindo ao processo!", true);
     mountMascot("#mascote-abertura");
     speak("#mascote-abertura", "Como vai se chamar a empresa?", true);
 

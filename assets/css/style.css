@@ -886,6 +886,20 @@ ul, ol { padding: 0; list-style: none; }
   74%  { transform: rotate(-10deg); }
   100% { transform: rotate(0); }
 }
+@keyframes m-carimbar-capa {
+  0%, 70%, 100% { transform: rotate(0); }
+  77% { transform: rotate(-34deg); }
+  84% { transform: rotate(34deg); }
+  91% { transform: rotate(-10deg); }
+}
+#mascote-capa[data-estado="ok"] .m-braco--carimbo,
+#mascote-capa-mobile[data-estado="ok"] .m-braco--carimbo {
+  animation: m-carimbar-capa 3.2s ease-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  #mascote-capa .m-braco--carimbo,
+  #mascote-capa-mobile .m-braco--carimbo { animation: none; }
+}
 @keyframes m-estourar { 0% { transform: scale(0.2); opacity: 0; } 45% { transform: scale(1.18); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
 @keyframes m-oscilar { 0%, 100% { transform: rotate(0); } 30% { transform: rotate(-5deg); } 65% { transform: rotate(4deg); } }
 @keyframes m-tremer {
