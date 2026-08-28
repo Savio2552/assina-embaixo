@@ -1639,3 +1639,31 @@ body.splash-ativa { overflow: hidden; }
 @media (prefers-reduced-motion: reduce) {
   .duelo__lado { transition: none; }
 }
+
+/* Deferimento é padrão absoluto, não classificação: as duas equipes podem
+   sair sem licença. O selo abaixo da nota diz o que aconteceu com AQUELE
+   processo, independente de quem pontuou mais. */
+.duelo__status {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--tinta-3);
+  font-family: var(--fonte-dado);
+  font-size: 0.62rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  line-height: 1.5;
+}
+.duelo__status--deferido   { color: var(--carbono); }
+.duelo__status--indeferido { color: var(--carmim); }
+
+/* O recado que separa vencer de deferir. Só aparece quando há algo a
+   dizer — e ganha moldura quando quem venceu não levou a licença. */
+.duelo__licenca {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-left: 3px solid var(--mostarda);
+  background: var(--barra-2);
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+.duelo__licenca--grave { border-left-color: var(--carmim); }

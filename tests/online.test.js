@@ -14,6 +14,11 @@
 var fs = require("fs"), vm = require("vm"), path = require("path");
 var H = require(path.join(__dirname, "harness.js"));
 
+/* A régua vem do game.js: se alguém mudar o mínimo, o teste acompanha em vez
+   de passar a testar um número que o jogo não usa mais. */
+var GAME_SRC = fs.readFileSync("assets/js/game.js", "utf8");
+var LICENSE_MIN = Number(/var LICENSE_MIN = (\d+);/.exec(GAME_SRC)[1]);
+
 var falhas = 0;
 function ok(c, m) { if (!c) { falhas++; console.log("  FALHOU: " + m); } }
 
@@ -33,6 +38,8 @@ function bootar() {
     normalizeRoomCode: function (r) { return String(r).toUpperCase() === "KQ7D" ? "KQ7D" : ""; },
     companyForRoom: function () { return "Igarapé Verde Alimentos"; },
     prepareTeamSetup: function (c) { GAME._empresa = c; },
+    LICENSE_MIN: LICENSE_MIN,
+    gradeFor: function (score) { return { granted: score >= LICENSE_MIN }; },
     showScreen: function (s) { telas.push(s); },
     TEAM_SLOTS: 4, onPhase: null, onFinalScore: null
   };
@@ -165,6 +172,72 @@ ok(!s2.dom.el("#duelo-eles").classList.contains("duelo__lado--esperando"),
    "lado do adversário ficou pontilhado mesmo com ele já tendo terminado");
 
 secao("terminar em segundo");
+
+/* ---------- a régua do duelo é a mesma do parecer ---------- */
+var bandas = /var GRADE_BANDS = \[([\s\S]*?)\n  \];/.exec(GAME_SRC)[1];
+var minimos = (bandas.match(/min: (\d+)/g) || []).map(function (m) { return Number(m.slice(5)); });
+ok(minimos.indexOf(LICENSE_MIN) >= 0,
+   "não há faixa de parecer começando em " + LICENSE_MIN + ": o selo do duelo diria 'deferido' " +
+   "numa nota que o parecer classifica de outro jeito");
+secao("régua alinhada com o parecer");
+
+/* ---------- vencer não é deferir ---------- */
+function duelo(meu, outro) {
+  var t = bootar();
+  t.dom.el("#nome-equipe-online").value = "Nós";
+  t.dom.el("#btn-criar-sala").click();
+  t.fb.write("salas/KQ7D/equipes/b", { nome: "Eles", fase: 4 });
+  t.GAME.onFinalScore(meu);
+  t.fb.write("salas/KQ7D/equipes/b/placar", outro);
+  return t.dom;
+}
+
+var alto = LICENSE_MIN + 10, baixo = LICENSE_MIN - 10, maisBaixo = LICENSE_MIN - 20;
+
+/* venceu, mas os dois ficaram abaixo do mínimo — o caso que motivou tudo */
+var d1 = duelo(baixo, maisBaixo);
+ok(/venceu/.test(d1.el("#duelo-veredito-tela").textContent), "não reconheceu a vitória");
+ok(d1.el("#duelo-nos-status").textContent === "Licença não concedida",
+   "selo errado abaixo do mínimo: " + d1.el("#duelo-nos-status").textContent);
+ok(d1.el("#duelo-nos-status").classList.contains("duelo__status--indeferido"), "selo sem a cor de indeferido");
+ok(!d1.el("#duelo-licenca").classList.contains("oculto"), "não mostrou o recado da licença");
+ok(d1.el("#duelo-licenca").classList.contains("duelo__licenca--grave"), "recado não veio destacado");
+ok(/mesmo assim não deferiu/.test(d1.el("#duelo-licenca").textContent),
+   "não disse que venceu sem deferir: " + d1.el("#duelo-licenca").textContent);
+secao("venceu mas não deferiu");
+
+/* os dois deferiram */
+var d2 = duelo(alto, LICENSE_MIN);
+ok(d2.el("#duelo-nos-status").textContent === "Licença concedida", "selo errado acima do mínimo");
+ok(d2.el("#duelo-eles-status").textContent === "Licença concedida", "o mínimo exato tem que deferir");
+ok(d2.el("#duelo-nos-status").classList.contains("duelo__status--deferido"), "selo sem a cor de deferido");
+ok(!d2.el("#duelo-licenca").classList.contains("duelo__licenca--grave"), "destacou sem motivo");
+ok(/Os dois processos foram deferidos/.test(d2.el("#duelo-licenca").textContent),
+   "recado errado com os dois deferidos: " + d2.el("#duelo-licenca").textContent);
+secao("os dois deferiram");
+
+/* perdeu E ficou sem licença */
+var d3 = duelo(baixo, alto);
+ok(d3.el("#duelo-nos-status").textContent === "Licença não concedida", "selo errado ao perder");
+ok(d3.el("#duelo-eles-status").textContent === "Licença concedida", "selo errado do adversário");
+ok(d3.el("#duelo-licenca").classList.contains("duelo__licenca--grave"), "perder sem licença deveria destacar");
+secao("perdeu e não deferiu");
+
+/* a fronteira exata: um ponto abaixo do mínimo não defere */
+var d4 = duelo(LICENSE_MIN - 1, maisBaixo);
+ok(d4.el("#duelo-nos-status").textContent === "Licença não concedida",
+   "um ponto abaixo do mínimo não pode deferir");
+secao("fronteira do mínimo");
+
+/* enquanto o adversário não termina, não há recado de licença a dar */
+var t5 = bootar();
+t5.dom.el("#nome-equipe-online").value = "Nós";
+t5.dom.el("#btn-criar-sala").click();
+t5.fb.write("salas/KQ7D/equipes/b", { nome: "Eles", fase: 2 });
+t5.GAME.onFinalScore(alto);
+ok(t5.dom.el("#duelo-licenca").classList.contains("oculto"), "deu veredito de licença sem os dois placares");
+ok(t5.dom.el("#duelo-eles-status").textContent === "—", "inventou selo para quem não terminou");
+secao("sem recado antes da hora");
 
 console.log(falhas ? "\n" + falhas + " FALHA(S)" : "\ntodos os testes passaram");
 process.exit(falhas ? 1 : 0);

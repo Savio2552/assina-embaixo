@@ -2529,6 +2529,12 @@ ao processo"><span>Bem-vindo<br>ao processo</span></h2>
   var BONUS_ACCURACY_MAX = 10;
   var MULTI_SELECT_FAIL_POINTS = -10;
 
+  /* A licença só sai a partir daqui. Entre 50 e 69 a análise trava e a
+     exigência volta; abaixo de 50 o processo é arquivado — nos dois casos
+     NÃO há deferimento. É por isso que vencer o duelo não basta: o duelo
+     compara as duas equipes, o deferimento é padrão absoluto. */
+  var LICENSE_MIN = 70;
+
   var GRADE_BANDS = [
     { min: 90, title: "Licenciamento responsável", text: "O processo chega ao fim com despesas pagas, estudo íntegro e informação verdadeira. É assim que a licença se sustenta depois de emitida." },
     { min: 70, title: "Licenciamento aprovado com ajustes", text: "O caminho estava certo, mas houve escolhas que geraram pendência. Ajustes agora custam menos do que correção depois da fiscalização." },
@@ -3906,8 +3912,17 @@ ao processo"><span>Bem-vindo<br>ao processo</span></h2>
     $("#btn-sugerir-equipes").classList.toggle("oculto", !!locked);
   }
 
+  /* O parecer de uma nota, para o modo online descrever cada lado sem
+     recalcular banda nenhuma — a régua tem que ser a mesma dos dois lados. */
+  function gradeFor(score) {
+    var band = GRADE_BANDS.filter(function (f) { return score >= f.min; })[0];
+    return { title: band.title, text: band.text, granted: score >= LICENSE_MIN };
+  }
+
   window.AssinaEmbaixo = {
     newRoomCode: newRoomCode,
+    gradeFor: gradeFor,
+    LICENSE_MIN: LICENSE_MIN,
     normalizeRoomCode: normalizeRoomCode,
     companyForRoom: companyForRoom,
     prepareTeamSetup: prepareTeamSetup,

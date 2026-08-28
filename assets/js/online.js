@@ -214,7 +214,10 @@
     var nos = pintarLado("#duelo-nos", meu.nome || "Sua equipe", meuP);
     var eles = pintarLado("#duelo-eles", (outro && outro.nome) || "Equipe adversária", outroP);
 
-    var veredito, espera = "";
+    var meuG = selo("#duelo-nos", meuP);
+    var elesG = selo("#duelo-eles", outroP);
+
+    var veredito, espera = "", resultado = null;
 
     if (typeof meuP !== "number") {
       veredito = "Apurando o resultado…";
@@ -225,14 +228,17 @@
         ? "A equipe " + (outro.nome || "adversária") + " ainda está no processo. Esta tela se atualiza sozinha."
         : "A outra equipe ainda não entrou na sala. Esta tela se atualiza sozinha.";
     } else if (meuP > outroP) {
+      resultado = "vence";
       nos.classList.add("duelo__lado--vence");
       eles.classList.add("duelo__lado--perde");
       veredito = "Sua equipe venceu por " + pontos(meuP - outroP) + ".";
     } else if (meuP < outroP) {
+      resultado = "perde";
       eles.classList.add("duelo__lado--vence");
       nos.classList.add("duelo__lado--perde");
       veredito = "A equipe adversária venceu por " + pontos(outroP - meuP) + ".";
     } else {
+      resultado = "empate";
       nos.classList.add("duelo__lado--vence");
       eles.classList.add("duelo__lado--vence");
       veredito = "Empate: as duas fecharam o processo com " + pontos(meuP) + ".";
@@ -243,7 +249,71 @@
     aviso.textContent = espera;
     aviso.classList.toggle("oculto", !espera);
 
+    recadoLicenca(meuG, elesG, resultado);
     renderBlocoParecer(meu, outro, meuP, outroP, veredito);
+  }
+
+  /* O selo de cada lado sai da MESMA régua do parecer individual
+     (GAME.gradeFor), para o duelo nunca dizer "deferido" onde o parecer diz
+     o contrário. */
+  function selo(sel, placar) {
+    var el = $(sel + "-status");
+    el.classList.remove("duelo__status--deferido", "duelo__status--indeferido");
+    if (typeof placar !== "number") {
+      el.textContent = "—";
+      return null;
+    }
+    var g = GAME.gradeFor(placar);
+    el.textContent = g.granted ? "Licença concedida" : "Licença não concedida";
+    el.classList.add(g.granted ? "duelo__status--deferido" : "duelo__status--indeferido");
+    return g;
+  }
+
+  /* Vencer o duelo e obter a licença são coisas diferentes: o duelo é
+     comparação entre as duas equipes, o deferimento é padrão absoluto. As
+     duas podem sair sem licença, e quem venceu precisa ouvir isso. */
+  function recadoLicenca(meuG, elesG, resultado) {
+    var box = $("#duelo-licenca");
+    box.classList.remove("duelo__licenca--grave");
+
+    if (!meuG || !elesG) {
+      box.textContent = "";
+      box.classList.add("oculto");
+      return;
+    }
+
+    var minimo = GAME.LICENSE_MIN;
+    var texto, grave = false;
+
+    if (meuG.granted && elesG.granted) {
+      texto = "Os dois processos foram deferidos. A diferença de pontos separa " +
+        "quem licenciou melhor — não quem licenciou.";
+    } else if (!meuG.granted && !elesG.granted) {
+      grave = true;
+      if (resultado === "vence") {
+        texto = "Você foi melhor que a outra equipe, mas mesmo assim não deferiu. " +
+          "Abaixo de " + minimo + " pontos a análise trava em exigência ou o processo é " +
+          "arquivado, e nenhuma das duas equipes saiu com a licença. O duelo compara " +
+          "vocês duas; o deferimento não — ele é padrão absoluto.";
+      } else if (resultado === "perde") {
+        texto = "A outra equipe pontuou mais, mas nenhuma das duas saiu com a licença: " +
+          "abaixo de " + minimo + " pontos o processo não é deferido.";
+      } else {
+        texto = "Empate — e nenhuma das duas saiu com a licença: abaixo de " + minimo +
+          " pontos o processo não é deferido.";
+      }
+    } else if (meuG.granted) {
+      texto = "Seu processo foi deferido; o da outra equipe, não. Vencer ajudou, " +
+        "mas o que emitiu a licença foram os " + minimo + " pontos.";
+    } else {
+      grave = true;
+      texto = "A outra equipe saiu com a licença e a sua não: abaixo de " + minimo +
+        " pontos o processo não é deferido.";
+    }
+
+    box.textContent = texto;
+    box.classList.toggle("duelo__licenca--grave", grave);
+    box.classList.remove("oculto");
   }
 
   /* O mesmo resultado, resumido dentro do parecer — é ele que sai na
