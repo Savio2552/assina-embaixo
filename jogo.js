@@ -638,9 +638,7 @@
       "Larissa Vitória Oliveira Queiroz",
       "Bianca Gaspar da Silva"
     ],
-    development: [
-      "Savio Martins"
-    ],
+    development: [],
     facts: [
       ["Instituição", "Ufra"],
       ["Disciplina", "Administração"],
@@ -1650,6 +1648,10 @@
   function renderCredits() {
     $("#expediente-autores").innerHTML = creditsListHtml(CREDITS.authors, "");
     $("#expediente-dev").innerHTML = creditsListHtml(CREDITS.development, " expediente__nome--dev");
+    /* lista vazia tira o rotulo junto, senao sobra um titulo sem ninguem */
+    var semDev = !CREDITS.development.length;
+    $("#expediente-papel-dev").classList.toggle("oculto", semDev);
+    $("#expediente-dev").classList.toggle("oculto", semDev);
     $("#expediente-ficha").innerHTML = CREDITS.facts.map(function (row) {
       return '<li>' +
         '<span class="rotulo">' + fillCompany(row[0]) + '</span>' +
