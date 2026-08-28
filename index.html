@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Assina Embaixo — quem paga e quem responde?</title>
+<meta name="description" content="Simulação didática sobre responsabilidade do empreendedor, despesas do licenciamento e responsabilidade técnica na Lei nº 15.190/2025.">
+<link rel="stylesheet" href="estilo.css">
+</head>
+<body>
+
+<!-- ================= ABERTURA DA IMPRESSORA ================= -->
+<div class="splash" id="splash" role="status" aria-label="Abrindo o processo">
+
+  <div class="splash__folha">
+    <div class="picote picote--esq" aria-hidden="true"></div>
+
+    <div class="splash__impresso">
+      <p class="splash__faixa">
+        <span>Órgão ambiental · impressora 01</span>
+        <span>Fl. 00</span>
+      </p>
+
+      <p class="splash__olho">Processo 000.4821/2025 — Capanema · Pará</p>
+
+      <h1 class="splash__titulo" data-eco="Assina
+embaixo"><span>Assina<br>embaixo</span></h1>
+
+      <p class="splash__linha">quem paga e quem responde?</p>
+      <p class="splash__lei">Lei nº 15.190/2025 · simulação didática</p>
+
+      <div class="splash__carga">
+        <span class="splash__barra" aria-hidden="true"></span>
+        <span class="splash__status">alinhando o formulário…</span>
+      </div>
+
+      <ul class="logos logos--tira" id="logos-splash" aria-hidden="true"></ul>
+    </div>
+
+    <div class="picote picote--dir" aria-hidden="true"></div>
+  </div>
+
+  <button class="splash__pular" id="btn-pular-splash" type="button">pular abertura</button>
+
+</div>
+
+<div class="folha">
+  <div class="picote picote--esq" aria-hidden="true"></div>
+
+  <div class="impresso">
+
+    <div class="faixa">
+      <span>Simulação didática · <b>Lei nº 15.190/2025</b> · Licenciamento ambiental</span>
+      <span id="faixa-folha">Fl. 00 · capa</span>
+    </div>
+
+    <header class="cabecalho">
+      <div>
+        <p class="olho" id="olho-processo">Processo 000.4821/2025 — Capanema · Pará</p>
+        <h1 class="titulo" data-eco="Assina
+embaixo"><span>Assina<br>embaixo</span></h1>
+        <p class="subtitulo">quem paga e quem responde?</p>
+      </div>
+      <p class="selo">Cópia<b>não vale</b>como licença</p>
+    </header>
+
+    <!-- ================= BOAS-VINDAS / FOLHA DE ROSTO ================= -->
+    <section class="tela" id="tela-boas-vindas">
+      <div class="capa">
+
+        <div class="capa__frente">
+          <p class="rubrica">Folha de rosto</p>
+          <h2 class="capa__titulo" data-eco="Bem-vindo
+ao processo"><span>Bem-vindo<br>ao processo</span></h2>
+          <p class="capa__linha">Simulação didática sobre a Lei Geral do Licenciamento Ambiental — Lei nº 15.190/2025.</p>
+
+          <p class="capa__texto">Um jogo de decisões sobre o licenciamento ambiental de uma agroindústria de polpa de frutas no interior do Pará. Cinco fases, um caixa que não estica e a pergunta que atravessa a Lei Geral do Licenciamento Ambiental: de quem é a conta e de quem é a responsabilidade?</p>
+          <p class="capa__texto">Cada decisão registrada volta com o fundamento legal correspondente. A pontuação é só o placar — o conteúdo está nos artigos.</p>
+
+          <div class="acoes acoes--modos">
+            <button class="botao botao--principal botao--modo" id="btn-individual">
+              <span class="botao__modo">Jogar individual</span>
+              <span class="botao__nota">você decide sozinho</span>
+            </button>
+            <button class="botao botao--modo" id="btn-equipe">
+              <span class="botao__modo">Jogar por responsáveis</span>
+              <span class="botao__nota">a turma decide em grupo</span>
+            </button>
+          </div>
+          <p class="capa__nota">15 a 20 minutos · sem cadastro · créditos e valores fictícios</p>
+        </div>
+
+        <div class="capa__verso">
+          <div class="mascote mascote--medio" id="mascote-capa" data-estado="idle" aria-hidden="true"></div>
+          <p class="rubrica capa__rubrica">Expediente</p>
+
+          <p class="expediente__papel">Discentes responsáveis</p>
+          <ol class="expediente" id="expediente-autores"></ol>
+
+          <p class="expediente__papel">Desenvolvimento</p>
+          <ol class="expediente" id="expediente-dev"></ol>
+
+          <ul class="campos" id="expediente-ficha"></ul>
+
+          <p class="capa__carimbo">Material didático · uso livre para fins educacionais</p>
+        </div>
+
+        <div class="capa__realizacao">
+          <p class="rubrica">Realização</p>
+          <ul class="logos" id="logos-capa"></ul>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ================= CADASTRO DOS RESPONSÁVEIS ================= -->
+    <section class="tela oculto" id="tela-equipes">
+
+      <p class="rubrica">Cadastro dos responsáveis</p>
+
+      <div class="equipes__topo">
+        <label class="campo-form" for="empresa-equipes">
+          <span class="campo-form__rotulo">Razão social do empreendimento — a mesma para todas as pessoas</span>
+          <input id="empresa-equipes" class="campo-form__entrada" type="text" maxlength="42"
+                 placeholder="ex.: Amanari Alimentos Ltda." autocomplete="organization" spellcheck="false">
+        </label>
+        <button class="botao botao--fantasma" id="btn-sugerir-equipes">Sortear um nome</button>
+      </div>
+
+      <div class="equipes" id="equipes-grade"></div>
+
+      <p class="aviso oculto" id="erro-equipes"></p>
+
+      <div class="acoes">
+        <button class="botao botao--principal" id="btn-abrir-equipes">Abrir o processo</button>
+        <button class="botao botao--fantasma" id="btn-voltar-capa">Voltar</button>
+      </div>
+      <p class="capa__nota">Cadastre cinco pessoas · cada uma será responsável por um tema durante sua etapa</p>
+
+    </section>
+
+    <!-- ================= ABERTURA ================= -->
+    <section class="tela oculto" id="tela-abertura">
+      <div class="abertura">
+
+        <div class="texto-guia">
+          <p class="rubrica">A missão</p>
+          <p>Você acaba de assumir a coordenação do licenciamento de uma agroindústria de polpa de frutas em Capanema, no Pará. A empresa tem <strong>140 créditos</strong> em caixa e uma vontade grande de gastar o mínimo possível.</p>
+          <p>Ao longo de cinco fases você decide o que pagar, quem contratar e o que protocolar. Cada decisão mexe em quatro indicadores ao mesmo tempo — e economizar no lugar errado sai caro no fim.</p>
+          <p>A base é a Lei Geral do Licenciamento Ambiental: as despesas que correm por conta do empreendedor, o que não pode ser cobrado dele e a responsabilidade pelas informações apresentadas ao órgão ambiental.</p>
+
+          <ol class="instrucoes">
+            <li>Batize a empresa aqui do lado. O nome vai para a capa, para os briefings e para o parecer.</li>
+            <li>Leia a situação e marque uma alternativa. Em algumas fases dá para marcar vários itens ou arrastar cartões.</li>
+            <li>Confirme em <em>Registrar decisão</em>. Depois disso, a folha é protocolada: não dá para voltar atrás.</li>
+            <li>Cada retorno traz o fundamento legal. É ali que está o conteúdo — a pontuação é só o placar.</li>
+            <li>No fim sai o parecer com a nota, o extrato de todas as decisões e os artigos estudados.</li>
+          </ol>
+
+        </div>
+
+        <div>
+          <div class="protocolo">
+            <div class="mascote mascote--medio" id="mascote-abertura" data-estado="idle" aria-hidden="true"></div>
+            <p class="rubrica protocolo__rubrica">Abertura do processo</p>
+
+            <label class="campo-form" for="nome-empresa">
+              <span class="campo-form__rotulo" id="rotulo-nome">Razão social do empreendimento</span>
+              <input id="nome-empresa" class="campo-form__entrada" type="text" maxlength="42"
+                     placeholder="ex.: Amanari Alimentos Ltda." autocomplete="organization" spellcheck="false">
+            </label>
+            <p class="aviso oculto" id="erro-empresa">Escreva o nome da empresa para abrir o processo.</p>
+            <p class="protocolo__nota">Todo o processo sai com esse nome: capa, ficha, briefings das fases e parecer final.</p>
+
+            <div class="acoes">
+              <button class="botao botao--principal" id="btn-abrir">Abrir o processo</button>
+              <button class="botao botao--fantasma" id="btn-sugerir">Sortear um nome</button>
+              <button class="botao botao--fantasma" id="btn-capa">Créditos</button>
+            </div>
+          </div>
+
+          <p class="rubrica" style="margin-top:26px">Ficha do empreendimento</p>
+          <ul class="campos">
+            <li><span class="rotulo">Empreendedor</span><span class="pontilhado"></span><span class="valor" id="ficha-empreendedor">—</span></li>
+            <li><span class="rotulo">Modo de jogo</span><span class="pontilhado"></span><span class="valor" id="ficha-modo">Individual</span></li>
+            <li><span class="rotulo">Atividade</span><span class="pontilhado"></span><span class="valor">Agroindústria de polpa</span></li>
+            <li><span class="rotulo">Local</span><span class="pontilhado"></span><span class="valor">Capanema / PA</span></li>
+            <li><span class="rotulo">Área</span><span class="pontilhado"></span><span class="valor">4,2 ha</span></li>
+            <li><span class="rotulo">Corpo hídrico</span><span class="pontilhado"></span><span class="valor">Igarapé lindeiro</span></li>
+            <li><span class="rotulo">Caixa inicial</span><span class="pontilhado"></span><span class="valor">140 créditos</span></li>
+            <li><span class="rotulo">Decisões</span><span class="pontilhado"></span><span class="valor" id="total-decisoes">—</span></li>
+            <li><span class="rotulo">Pontuação máxima</span><span class="pontilhado"></span><span class="valor" id="pontos-max">—</span></li>
+            <li><span class="rotulo">Duração</span><span class="pontilhado"></span><span class="valor">15 a 20 min</span></li>
+          </ul>
+
+          <p class="rubrica" style="margin-top:26px">Indicadores do jogador</p>
+          <ul class="campos">
+            <li><span class="rotulo">Orçamento</span><span class="pontilhado"></span><span class="valor">créditos fictícios</span></li>
+            <li><span class="rotulo">Conformidade</span><span class="pontilhado"></span><span class="valor">cumprimento da lei</span></li>
+            <li><span class="rotulo">Credibilidade</span><span class="pontilhado"></span><span class="valor">qualidade do estudo</span></li>
+            <li><span class="rotulo">Proteção</span><span class="pontilhado"></span><span class="valor">controle de impactos</span></li>
+          </ul>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ================= JOGO ================= -->
+    <section class="tela oculto" id="tela-jogo">
+      <div class="corpo">
+
+        <aside class="ficha" aria-label="Ficha de acompanhamento do processo">
+          <p class="ficha__titulo">Ficha de acompanhamento</p>
+
+          <div class="ficha__bloco ficha__empresa" id="ficha-empresa">—</div>
+
+          <div class="ficha__bloco" id="medidores"></div>
+
+          <div class="ficha__bloco oculto" id="ficha-equipes">
+            <p class="rubrica" style="margin-bottom:8px">Responsáveis por tema</p>
+            <ul id="lista-equipes" class="placar"></ul>
+          </div>
+
+          <div class="ficha__bloco">
+            <p class="rubrica" style="margin-bottom:8px">Fases</p>
+            <ul id="etapas" class="etapas"></ul>
+          </div>
+
+          <div class="ficha__bloco">
+            <p class="rubrica" style="margin-bottom:8px">Extrato do processo</p>
+            <ul id="extrato" class="extrato"></ul>
+            <p class="medidor__topo" style="margin-top:10px">
+              <span>Saldo de pontos</span>
+              <span class="medidor__valor" id="saldo-pontos">0 pts</span>
+            </p>
+          </div>
+        </aside>
+
+        <div class="dossie">
+          <div class="mascote" id="mascote" data-estado="idle" aria-hidden="true"></div>
+
+          <div class="dossie__topo">
+            <span id="dossie-fase">Fase 01</span>
+            <span id="dossie-decisao">Abertura da fase</span>
+          </div>
+          <div class="dossie__corpo" id="dossie-corpo" aria-live="polite"></div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ================= PARECER FINAL ================= -->
+    <section class="tela oculto" id="tela-final">
+      <div class="parecer">
+
+        <div>
+          <p class="rubrica" id="rubrica-parecer">Parecer final do processo</p>
+          <div class="nota-caixa">
+            <div class="mascote mascote--grande" id="mascote-final" data-estado="idle" aria-hidden="true"></div>
+            <div class="nota-final">
+              <p class="valor" id="nota-valor">0</p>
+              <p class="de">de 100 pontos</p>
+              <p class="classificacao" id="nota-classificacao">—</p>
+            </div>
+          </div>
+          <p style="margin-top:14px" id="nota-texto"></p>
+          <p class="olho" style="margin-top:10px" id="nota-bruta"></p>
+          <p class="aviso oculto" id="alerta-caixa" style="margin-top:10px">Atenção: o caixa do projeto terminou zerado.</p>
+
+          <p class="rubrica" style="margin-top:26px">Indicadores finais</p>
+          <div id="medidores-finais"></div>
+
+          <p class="rubrica" style="margin-top:26px">Bônus</p>
+          <ul class="lancamentos" id="bonus-final"></ul>
+
+          <div class="oculto" id="bloco-placar">
+            <p class="rubrica" style="margin-top:26px">Contribuição dos responsáveis</p>
+            <ul class="placar placar--final" id="placar-final"></ul>
+          </div>
+
+          <blockquote class="mensagem">
+            Obter uma licença não é só pagar taxas. O empreendedor financia os estudos e as medidas ambientais, garante a qualidade das informações e acompanha tecnicamente todo o processo. Contratar profissionais não elimina a responsabilidade dele.
+          </blockquote>
+
+          <div class="acoes">
+            <button class="botao botao--principal" id="btn-recomecar">Recomeçar o processo</button>
+            <button class="botao botao--fantasma" id="btn-imprimir">Imprimir o parecer</button>
+          </div>
+        </div>
+
+        <div>
+          <p class="rubrica">Extrato de decisões</p>
+          <ul class="extrato-final" id="extrato-final"></ul>
+
+          <p class="rubrica" style="margin-top:26px">Artigos estudados</p>
+          <ul class="artigos" id="artigos"></ul>
+        </div>
+
+      </div>
+    </section>
+
+    <footer class="rodape">
+      <span>Créditos, prazos e valores do jogo são fictícios · conteúdo didático</span>
+      <span><a href="https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2025/lei/l15190.htm" target="_blank" rel="noopener">Texto da Lei nº 15.190/2025</a></span>
+    </footer>
+
+    <noscript>
+      <p class="aviso">Este jogo precisa de JavaScript ativado para funcionar.</p>
+    </noscript>
+
+  </div>
+
+  <div class="picote picote--dir" aria-hidden="true"></div>
+</div>
+
+<script src="jogo.js"></script>
+</body>
+</html>

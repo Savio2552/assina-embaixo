@@ -1,0 +1,1960 @@
+/* =========================================================================
+   ASSINA EMBAIXO — quem paga e quem responde?
+   Simulação didática sobre a Lei nº 15.190/2025 (Lei Geral do
+   Licenciamento Ambiental): responsabilidade do empreendedor, despesas do
+   licenciamento e responsabilidade técnica.
+
+   Sem dependências. Todo o conteúdo jurídico fica em CONTENT, separado
+   da mecânica — dá para trocar as perguntas sem mexer no resto.
+   ========================================================================= */
+
+/* -------------------------------------------------------------------------
+   SPLASH — abertura da impressora
+   A folha some sozinha pela animação do CSS (funciona sem JS). Aqui só
+   travamos a rolagem enquanto ela está na frente e deixamos o usuário
+   antecipar a saída com um clique ou uma tecla.
+   ------------------------------------------------------------------------- */
+
+(function () {
+  "use strict";
+
+  var DURATION = 2900; /* acompanha o delay + a duração de splash-sair no CSS */
+
+  document.addEventListener("DOMContentLoaded", function () {
+    var splash = document.getElementById("splash");
+    if (!splash) return;
+
+    /* o CSS já esconde a splash de quem pede menos movimento */
+    var parado = window.matchMedia &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (parado) {
+      splash.parentNode.removeChild(splash);
+      return;
+    }
+
+    var relogio = setTimeout(dismiss, DURATION);
+    document.body.classList.add("splash-ativa");
+    document.addEventListener("keydown", dismiss);
+    document.addEventListener("pointerdown", dismiss);
+
+    function dismiss() {
+      clearTimeout(relogio);
+      document.removeEventListener("keydown", dismiss);
+      document.removeEventListener("pointerdown", dismiss);
+      document.body.classList.remove("splash-ativa");
+      splash.classList.add("splash--fim");
+      splash.setAttribute("aria-hidden", "true");
+      setTimeout(function () {
+        if (splash.parentNode) splash.parentNode.removeChild(splash);
+      }, 400);
+    }
+  });
+})();
+
+(function () {
+  "use strict";
+
+  /* ---------------------------------------------------------------------
+     1. CONTEÚDO
+     --------------------------------------------------------------------- */
+
+  var LAW = "Lei nº 15.190/2025";
+
+  var CONTENT = [
+    {
+      title: "Conhecendo o empreendimento",
+      briefing:
+        "{empresa} pretende instalar uma agroindústria de polpa de frutas em Capanema, no Pará: 4,2 hectares às margens de um igarapé, com previsão de 60 empregos diretos. Você coordena o licenciamento. Antes de gastar o primeiro crédito, o processo precisa saber quem responde por essa atividade.",
+      decisions: [
+        {
+          type: "choice",
+          prompt: "Quem responde pela atividade potencialmente poluidora?",
+          legalBasis: "Art. 57, " + LAW,
+          maxPoints: 10,
+          options: [
+            {
+              txt: "A comunidade local, que convive com o empreendimento",
+              verdict: "erro",
+              points: -10,
+              effects: { compliance: -6 },
+              feedback:
+                "A comunidade participa do processo, inclusive em audiência pública, mas não responde pela atividade. Quem responde é quem empreende."
+            },
+            {
+              txt: "O órgão ambiental, que concede a licença",
+              verdict: "erro",
+              points: -10,
+              effects: { compliance: -6 },
+              feedback:
+                "O órgão analisa, licencia e fiscaliza. Conceder a licença não transfere para ele a responsabilidade pela atividade."
+            },
+            {
+              txt: "A pessoa física ou jurídica responsável pelo empreendimento",
+              verdict: "ok",
+              points: 10,
+              effects: { compliance: 6 },
+              feedback:
+                "É o empreendedor quem responde pela atividade e pelas informações apresentadas no processo. Esse é o eixo de todo o jogo: cada decisão daqui para frente é dele."
+            },
+            {
+              txt: "Apenas o profissional que elaborou o estudo",
+              verdict: "erro",
+              points: -10,
+              effects: { compliance: -6 },
+              feedback:
+                "O profissional que assina o estudo responde por ele, mas não sozinho. O empreendedor responde junto."
+            }
+          ]
+        },
+        {
+          type: "choice",
+          prompt:
+            "A empresa vai contratar uma consultoria para elaborar o estudo ambiental. O que acontece com a responsabilidade pelas informações?",
+          legalBasis: "Art. 57, " + LAW,
+          maxPoints: 10,
+          options: [
+            {
+              txt: "Passa integralmente para a consultoria contratada",
+              verdict: "erro",
+              points: -10,
+              effects: { compliance: -6, credibility: -4 },
+              feedback:
+                "Contratar não terceiriza a responsabilidade. Os profissionais que assinam respondem pelo que assinaram — e o empreendedor continua respondendo pelo que apresentou."
+            },
+            {
+              txt: "Continua com o empreendedor e alcança também os profissionais que assinam o estudo",
+              verdict: "ok",
+              points: 10,
+              effects: { compliance: 6, credibility: 4 },
+              feedback:
+                "As duas responsabilidades convivem: a do signatário do estudo e a de quem empreende. É por isso que ler o estudo antes de protocolar é obrigação sua, não gentileza."
+            },
+            {
+              txt: "Fica suspensa até o órgão ambiental aprovar o estudo",
+              verdict: "erro",
+              points: -10,
+              effects: { compliance: -6 },
+              feedback:
+                "A responsabilidade não fica em suspenso à espera de análise. Ela existe desde a apresentação da informação."
+            },
+            {
+              txt: "Depende de uma cláusula de exclusão no contrato de prestação de serviço",
+              verdict: "erro",
+              points: -10,
+              effects: { compliance: -6 },
+              feedback:
+                "Contrato entre particulares organiza a relação entre eles. Não afasta a responsabilidade perante o órgão ambiental e terceiros."
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      title: "Quem paga a conta?",
+      briefing:
+        "O financeiro da {empresa} mandou a planilha do processo e quer saber o que é obrigação da empresa. O art. 53 lista o que corre por conta do empreendedor — e o § 3º diz o que não pode ser cobrado dele de jeito nenhum.",
+      decisions: [
+        {
+          type: "sorting",
+          prompt: "Classifique cada item da planilha do processo.",
+          context:
+            "Arraste os cartões — ou toque em um cartão e depois na caixa de destino. Cada acerto vale 5 pontos; cada erro tira 5.",
+          legalBasis: "Art. 53 e §§ 1º a 3º, " + LAW,
+          maxPoints: 40,
+          pointsPerHit: 5,
+          pointsPerMiss: -5,
+          zones: [
+            { id: "empreendedor", title: "Despesa do empreendedor" },
+            { id: "vedada", title: "Não pode ser cobrada" }
+          ],
+          cards: [
+            { id: "c1", txt: "Elaboração dos estudos ambientais exigidos", target: "empreendedor", note: "Art. 53, I" },
+            { id: "c2", txt: "Realização da audiência pública ou da reunião participativa", target: "empreendedor", note: "Art. 53, II" },
+            { id: "c3", txt: "Implantação, operação e monitoramento das condicionantes", target: "empreendedor", note: "Art. 53, III" },
+            { id: "c4", txt: "Publicação do pedido de licença e do pedido de renovação", target: "empreendedor", note: "Art. 53, IV" },
+            { id: "c5", txt: "Cobranças previstas na legislação ambiental aplicável", target: "empreendedor", note: "Art. 53, V" },
+            { id: "c6", txt: "Taxas e preços públicos fixados pelo ente federativo", target: "empreendedor", note: "Art. 53, VI" },
+            { id: "c7", txt: "Emissão da declaração de não sujeição ao licenciamento", target: "vedada", note: "Art. 53, § 3º" },
+            { id: "c8", txt: "Valor cobrado sem previsão legal e sem relação com o custo do serviço", target: "vedada", note: "Art. 53, §§ 1º e 2º" }
+          ],
+          feedback: {
+            ok: "Planilha correta. A conta do licenciamento é do empreendedor: estudos, audiência, publicações, condicionantes, taxas e preços públicos. O que não entra nessa conta é cobrança sem previsão legal — e a declaração de não sujeição, que é gratuita.",
+            ressalva: "Quase lá. Reveja os itens marcados em vermelho: a regra é que a despesa do processo é do empreendedor, salvo o que a lei veda expressamente.",
+            erro: "A planilha voltou errada. Releia o art. 53: ele enumera as despesas do empreendedor, exige proporcionalidade e transparência nas cobranças públicas e proíbe cobrar pela declaração de não sujeição."
+          }
+        },
+        {
+          type: "choice",
+          prompt:
+            "No balcão do órgão, o atendente informa que a declaração de não sujeição ao licenciamento só sai depois do pagamento de uma taxa de 15 créditos. O que você faz?",
+          legalBasis: "Art. 53, § 3º, " + LAW,
+          maxPoints: 10,
+          options: [
+            {
+              txt: "Paga a taxa para não atrasar o cronograma",
+              cost: "− 15 créditos",
+              verdict: "erro",
+              points: -10,
+              obligationsMet: false,
+              effects: { budget: -15, compliance: -5 },
+              feedback:
+                "A lei veda a cobrança para a emissão dessa declaração. Pagar não regulariza a cobrança indevida: apenas a normaliza, e o dinheiro sai do orçamento do projeto."
+            },
+            {
+              txt: "Recusa a cobrança por escrito e pede o fundamento legal do valor",
+              verdict: "ok",
+              points: 10,
+              effects: { compliance: 7 },
+              feedback:
+                "Correto. A declaração de não sujeição não pode ser cobrada, e toda cobrança pública precisa ser proporcional ao custo do serviço e transparente. Pedir o fundamento por escrito é o caminho — e não custa nada."
+            },
+            {
+              txt: "Paga agora e pede a devolução do valor depois",
+              cost: "− 15 créditos",
+              verdict: "ressalva",
+              points: 5,
+              effects: { budget: -15, compliance: 2 },
+              feedback:
+                "Você tem razão no mérito e pode buscar a restituição, mas escolheu o caminho mais caro e mais lento. Recusar a cobrança indevida na hora resolvia o mesmo problema."
+            },
+            {
+              txt: "Abre mão da declaração e segue o processo sem ela",
+              verdict: "erro",
+              points: -10,
+              effects: { compliance: -6 },
+              feedback:
+                "Desistir de um documento gratuito por causa de uma cobrança ilegal deixa o empreendimento sem a definição formal de que não havia sujeição ao licenciamento."
+            }
+          ]
+        },
+        {
+          type: "choice",
+          prompt:
+            "Chegou a conta desta etapa: audiência pública, publicação do pedido e taxa do órgão, 35 créditos ao todo. O caixa do projeto está apertado.",
+          context:
+            "Cortar despesa obrigatória sobra no orçamento hoje e falta na conformidade amanhã.",
+          legalBasis: "Art. 53, II, IV e VI, " + LAW,
+          maxPoints: 10,
+          options: [
+            {
+              txt: "Paga tudo e mantém o cronograma",
+              cost: "− 35 créditos",
+              verdict: "ok",
+              points: 10,
+              effects: { budget: -35, compliance: 9, protection: 4 },
+              feedback:
+                "É exatamente isso que a lei atribui ao empreendedor: a audiência ou reunião participativa, a publicação dos pedidos e as taxas e preços públicos do ente federativo."
+            },
+            {
+              txt: "Paga só a publicação e substitui a audiência por uma reunião interna com investidores",
+              cost: "− 12 créditos",
+              verdict: "erro",
+              points: -10,
+              obligationsMet: false,
+              effects: { budget: -12, compliance: -11, protection: -7 },
+              feedback:
+                "A audiência pública ou reunião participativa corre por conta do empreendedor e existe para ouvir quem é afetado. Reunião fechada com investidores não substitui participação pública."
+            },
+            {
+              txt: "Pede que o órgão ambiental assuma o custo da audiência",
+              verdict: "erro",
+              points: -10,
+              obligationsMet: false,
+              effects: { compliance: -7 },
+              feedback:
+                "A despesa é do empreendedor. O órgão organiza e conduz o processo, não financia a audiência do particular."
+            },
+            {
+              txt: "Adia todas essas despesas para depois de a licença sair",
+              verdict: "erro",
+              points: -10,
+              obligationsMet: false,
+              effects: { compliance: -9 },
+              feedback:
+                "Publicação e audiência fazem parte do processo, não do pós-licença. Adiar trava o andamento — e processo parado por inércia do empreendedor pode ser arquivado."
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      title: "Missão técnica",
+      briefing:
+        "Sem estudo, não há processo. Você precisa montar a equipe, ler o que ela produziu e decidir o que vai ser protocolado com o nome da {empresa} ao lado da assinatura do técnico.",
+      decisions: [
+        {
+          type: "choice",
+          prompt: "Três propostas para elaborar o estudo ambiental. Qual você contrata?",
+          legalBasis: "Art. 57, " + LAW,
+          maxPoints: 10,
+          options: [
+            {
+              txt: "Consultoria com equipe habilitada e responsabilidade técnica registrada",
+              cost: "− 40 créditos",
+              verdict: "ok",
+              points: 10,
+              effects: { budget: -40, credibility: 13, compliance: 6 },
+              feedback:
+                "A proposta mais cara é a que sustenta o processo. Profissional habilitado assina, responde e dá ao estudo a credibilidade que o órgão vai cobrar na análise."
+            },
+            {
+              txt: "Técnico autônomo sem registro no conselho profissional",
+              cost: "− 15 créditos",
+              verdict: "erro",
+              points: -10,
+              obligationsMet: false,
+              effects: { budget: -15, credibility: -13, compliance: -8 },
+              feedback:
+                "Estudo é peça técnica assinada por quem tem habilitação. Sem isso, o processo nasce frágil e o empreendedor continua respondendo pelo conteúdo apresentado."
+            },
+            {
+              txt: "Estudo modelo comprado pronto, sem assinatura, adaptado por um estagiário",
+              cost: "− 5 créditos",
+              verdict: "grave",
+              points: -20,
+              obligationsMet: false,
+              effects: { budget: -5, credibility: -20, compliance: -12, protection: -8 },
+              feedback:
+                "Isso não é economia, é apresentar informação que ninguém verificou e ninguém assina. A responsabilidade pelo que está escrito continua sendo do empreendedor."
+            }
+          ]
+        },
+        {
+          type: "multiSelect",
+          prompt: "O estudo chegou. Marque tudo o que impede o protocolo do jeito que está.",
+          context: "Pode marcar mais de um item. Marcar o que está certo também conta contra.",
+          legalBasis: "Art. 57, " + LAW,
+          maxPoints: 10,
+          items: [
+            { txt: "Nenhuma folha está assinada pelo responsável técnico", isProblem: true, note: "Art. 57" },
+            { txt: "O inventário de fauna foi copiado de um estudo de outro município", isProblem: true, note: "Art. 57" },
+            { txt: "O igarapé que corta o terreno não aparece na descrição dos impactos", isProblem: true, note: "Art. 57" },
+            { txt: "O cronograma de monitoramento das condicionantes está detalhado", isProblem: false, note: "em ordem" },
+            { txt: "As coordenadas do terreno conferem com o mapa anexo", isProblem: false, note: "em ordem" },
+            { txt: "A matrícula do imóvel e a planta de situação estão anexadas", isProblem: false, note: "em ordem" }
+          ],
+          thresholds: { ok: { hits: 3, falsePositives: 0 }, ressalva: { hits: 2, falsePositives: 1 } },
+          effects: {
+            ok: { credibility: 11, compliance: 5 },
+            ressalva: { credibility: 4 },
+            erro: { credibility: -9, compliance: -5 }
+          },
+          feedback: {
+            ok: "Leitura correta. Estudo sem assinatura, dado copiado de outro município e impacto omitido são as três pedras deste processo — e todas as três respingam no empreendedor.",
+            ressalva: "Você pegou parte do problema. Conferir assinatura, origem dos dados e coerência com o terreno é o mínimo antes de protocolar.",
+            erro: "A revisão passou batido. Quem protocola responde pelo conteúdo: falta de assinatura, dado copiado e impacto ausente precisam ser resolvidos antes do envio."
+          }
+        },
+        {
+          type: "choice",
+          prompt:
+            "O consultor propõe uma saída: deixar o impacto sobre o igarapé fora do estudo. “Ninguém vai lá conferir, e a licença sai mais rápido.”",
+          legalBasis: "Art. 57, " + LAW,
+          maxPoints: 10,
+          options: [
+            {
+              txt: "Aceita: economiza tempo e uma medida de controle cara",
+              cost: "+ 10 créditos poupados",
+              verdict: "grave",
+              points: -20,
+              obligationsMet: false,
+              effects: { budget: 10, credibility: -20, compliance: -16, protection: -20 },
+              feedback:
+                "Omissão intencional é informação falsa apresentada ao órgão. Os créditos poupados hoje viram sanção administrativa, dever de reparar o dano e responsabilização civil e penal, conforme o caso."
+            },
+            {
+              txt: "Protocola o estudo sem assinatura, para ninguém responder por ele",
+              verdict: "grave",
+              points: -20,
+              effects: { credibility: -18, compliance: -16 },
+              feedback:
+                "Retirar a assinatura não apaga a responsabilidade — só tira do processo a única pessoa que respondia junto com você."
+            },
+            {
+              txt: "Aceita, mas registra em ata que a decisão foi do consultor",
+              verdict: "erro",
+              points: -10,
+              effects: { credibility: -10, compliance: -9, protection: -8 },
+              feedback:
+                "A ata prova quem sugeriu, não quem responde. O empreendedor responde pelas informações que apresenta, tenha ou não sido ideia dele."
+            },
+            {
+              txt: "Recusa a omissão e exige a correção do estudo antes do protocolo",
+              cost: "− 10 créditos",
+              verdict: "ok",
+              points: 10,
+              bonus: { name: "Correção voluntária de erro técnico", points: 10 },
+              effects: { budget: -10, credibility: 15, compliance: 10, protection: 12 },
+              feedback:
+                "Corrigir antes de protocolar é mais barato do que corrigir depois da fiscalização — e é a conduta que a lei espera de quem responde pelo estudo junto com o técnico."
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      title: "Fiscalização surpresa",
+      briefing:
+        "Vistoria sem aviso. A equipe do órgão ambiental comparou o que está no papel com o que existe no terreno da {empresa} e encontrou divergência na área de supressão de vegetação.",
+      decisions: [
+        {
+          type: "choice",
+          prompt: "Como você responde à fiscalização?",
+          legalBasis: "Art. 57, " + LAW,
+          maxPoints: 10,
+          options: [
+            {
+              txt: "Apresenta as informações verdadeiras e corrige o estudo",
+              cost: "− 20 créditos",
+              verdict: "ok",
+              points: 10,
+              effects: { budget: -20, compliance: 12, credibility: 8, protection: 8 },
+              feedback:
+                "Corrigir custa, mas mantém o processo vivo. A informação verdadeira é obrigação de quem apresenta o estudo, e a correção espontânea pesa a favor na análise."
+            },
+            {
+              txt: "Atribui a falha exclusivamente à equipe técnica que assinou",
+              verdict: "erro",
+              points: -10,
+              effects: { credibility: -11, compliance: -9 },
+              feedback:
+                "Não há como empurrar a conta inteira para o técnico. A responsabilidade pelas informações alcança os profissionais signatários e o empreendedor."
+            },
+            {
+              txt: "Mantém os dados como estão para não gerar nova despesa",
+              verdict: "grave",
+              points: -20,
+              obligationsMet: false,
+              effects: { compliance: -18, credibility: -18, protection: -15 },
+              feedback:
+                "Sustentar dado incorreto diante da fiscalização agrava tudo: sanção administrativa, dever de reparar, responsabilização civil e penal, atraso ou arquivamento do processo."
+            }
+          ]
+        },
+        {
+          type: "multiSelect",
+          prompt:
+            "Apresentar informação falsa no processo pode gerar o quê? Marque todas as consequências possíveis.",
+          legalBasis: "Art. 57, " + LAW,
+          maxPoints: 10,
+          items: [
+            { txt: "Sanções administrativas", isProblem: true, note: "possível" },
+            { txt: "Obrigação de reparar o dano causado", isProblem: true, note: "possível" },
+            { txt: "Responsabilização civil", isProblem: true, note: "possível" },
+            { txt: "Responsabilização penal, conforme o caso", isProblem: true, note: "possível" },
+            { txt: "Atraso ou arquivamento do processo", isProblem: true, note: "possível" },
+            { txt: "Perdão automático assim que a licença for emitida", isProblem: false, note: "não existe" },
+            { txt: "Transferência integral da responsabilidade ao consultor", isProblem: false, note: "não existe" }
+          ],
+          thresholds: { ok: { hits: 5, falsePositives: 0 }, ressalva: { hits: 4, falsePositives: 1 } },
+          effects: {
+            ok: { compliance: 9 },
+            ressalva: { compliance: 3 },
+            erro: { compliance: -7 }
+          },
+          feedback: {
+            ok: "As consequências se somam, não se escolhem: administrativa, civil e penal, conforme o caso, além do dever de reparar e do risco para o próprio processo.",
+            ressalva: "Faltou enxergar parte do estrago. A responsabilização pode ser administrativa, civil e penal ao mesmo tempo, e ainda travar o licenciamento.",
+            erro: "Reveja: a licença não apaga o passado e o consultor não absorve a responsabilidade do empreendedor."
+          }
+        }
+      ]
+    },
+
+    {
+      title: "Decisão final",
+      briefing:
+        "O órgão ambiental analisou o que foi protocolado e pediu complementação de informações. São as últimas decisões antes do parecer.",
+      decisions: [
+        {
+          type: "choice",
+          prompt: "Qual deve ser a providência do empreendedor?",
+          legalBasis: "Art. 48, " + LAW,
+          maxPoints: 10,
+          options: [
+            {
+              txt: "Ignorar a notificação e aguardar a análise seguir sozinha",
+              verdict: "erro",
+              points: -10,
+              effects: { compliance: -12 },
+              feedback:
+                "A análise não segue sem a complementação. O silêncio do empreendedor é justamente o que abre caminho para o arquivamento."
+            },
+            {
+              txt: "Iniciar o empreendimento sem licença enquanto responde",
+              verdict: "grave",
+              points: -20,
+              effects: { compliance: -20, protection: -15 },
+              feedback:
+                "Operar sem licença é o oposto do que o processo inteiro tentou construir, e soma sanções ao que já estava pendente."
+            },
+            {
+              txt: "Apresentar a complementação dentro do prazo legal",
+              cost: "− 10 créditos",
+              verdict: "ok",
+              points: 10,
+              effects: { budget: -10, compliance: 12, credibility: 5 },
+              feedback:
+                "É a conduta esperada: responder ao que foi pedido, dentro do prazo, com informação verdadeira e assinada."
+            },
+            {
+              txt: "Abrir outro processo do zero para ganhar tempo",
+              cost: "− 15 créditos",
+              verdict: "erro",
+              points: -10,
+              effects: { budget: -15, compliance: -7 },
+              feedback:
+                "Começar de novo não apaga a pendência: gasta mais, atrasa mais e deixa o processo original exposto ao arquivamento."
+            }
+          ]
+        },
+        {
+          type: "choice",
+          prompt: "Qual é o prazo máximo para atender à solicitação de complementação?",
+          legalBasis: "Art. 48, " + LAW,
+          maxPoints: 10,
+          options: [
+            {
+              txt: "30 dias corridos, sem prorrogação",
+              verdict: "erro",
+              points: -10,
+              effects: { compliance: -5 },
+              feedback: "O prazo do art. 48 é maior: até quatro meses, com possibilidade de prorrogação justificada."
+            },
+            {
+              txt: "Quatro meses, prorrogáveis mediante justificativa aceita pela autoridade licenciadora",
+              verdict: "ok",
+              points: 10,
+              effects: { compliance: 8 },
+              feedback:
+                "Esse é o prazo máximo para as complementações solicitadas pelo órgão. A prorrogação existe, mas depende de justificativa aceita pela autoridade licenciadora."
+            },
+            {
+              txt: "Dois anos, contados da notificação",
+              verdict: "erro",
+              points: -10,
+              effects: { compliance: -5 },
+              feedback:
+                "Dois anos aparecem em outra situação: a inércia injustificada que pode levar ao arquivamento do processo, no art. 49."
+            },
+            {
+              txt: "Não há prazo: o processo espera o empreendedor",
+              verdict: "erro",
+              points: -10,
+              effects: { compliance: -6 },
+              feedback: "Há prazo, e o descumprimento injustificado tem consequência: o processo pode ser arquivado."
+            }
+          ]
+        },
+        {
+          type: "choice",
+          prompt:
+            "Suponha que o empreendedor pare de dar andamento ao processo, sem justificativa. O que pode acontecer?",
+          legalBasis: "Art. 49, " + LAW,
+          maxPoints: 10,
+          options: [
+            {
+              txt: "Nada: processo administrativo não caduca",
+              verdict: "erro",
+              points: -10,
+              effects: { compliance: -6 },
+              feedback: "A inércia injustificada tem preço: o processo pode ser arquivado."
+            },
+            {
+              txt: "O processo pode ser arquivado após notificação, decorridos dois anos de inércia injustificada",
+              verdict: "ok",
+              points: 10,
+              effects: { compliance: 8 },
+              feedback:
+                "É o que prevê o art. 49. Arquivado o processo, todo o investimento em estudos, publicações e taxas fica para trás."
+            },
+            {
+              txt: "A licença é concedida automaticamente pelo decurso do prazo",
+              verdict: "erro",
+              points: -10,
+              effects: { compliance: -8 },
+              feedback: "Não existe licença por esquecimento. O que existe é arquivamento."
+            },
+            {
+              txt: "O órgão ambiental assume a elaboração do estudo",
+              verdict: "erro",
+              points: -10,
+              effects: { compliance: -6 },
+              feedback: "A elaboração do estudo é despesa e responsabilidade do empreendedor, do começo ao fim."
+            }
+          ]
+        }
+      ]
+    }
+  ];
+
+  var ARTICLES = [
+    { art: "Art. 48", txt: "Complementações solicitadas pelo órgão ambiental: prazo máximo de quatro meses, prorrogável mediante justificativa aceita pela autoridade licenciadora." },
+    { art: "Art. 49", txt: "Arquivamento do processo por inércia injustificada do empreendedor, após notificação." },
+    { art: "Art. 53", txt: "Despesas do licenciamento que correm por conta do empreendedor: estudos, audiência pública ou reunião participativa, condicionantes, publicações, cobranças legais, taxas e preços públicos." },
+    { art: "Art. 53, §§ 1º e 2º", txt: "Cobranças públicas precisam ser proporcionais ao custo do serviço e transparentes." },
+    { art: "Art. 53, § 3º", txt: "É vedada a cobrança pela emissão da declaração de não sujeição ao licenciamento." },
+    { art: "Art. 57", txt: "Respondem pelas informações apresentadas os profissionais que assinam os estudos e o empreendedor, com consequências administrativas, civis e penais, conforme o caso." }
+  ];
+
+  var COMPANY_NAME_SUGGESTIONS = [
+    "Amanari Alimentos Ltda.",
+    "Polpa Boa Agroindústria",
+    "Frutos do Salgado S.A.",
+    "Igarapé Verde Alimentos",
+    "Caju & Cia Agroindustrial",
+    "Açaí do Norte Ltda.",
+    "Bragantina Polpas e Sucos",
+    "Cupuaçu Cinco Estrelas ME"
+  ];
+
+  var BONUS_ALL_OBLIGATIONS_MET = { name: "Cumprimento de todas as obrigações financeiras", points: 15 };
+  var BONUS_ACCURACY_MAX = 10;
+  var MULTI_SELECT_FAIL_POINTS = -10;
+
+  var GRADE_BANDS = [
+    { min: 90, title: "Licenciamento responsável", text: "O processo chega ao fim com despesas pagas, estudo íntegro e informação verdadeira. É assim que a licença se sustenta depois de emitida." },
+    { min: 70, title: "Licenciamento aprovado com ajustes", text: "O caminho estava certo, mas houve escolhas que geraram pendência. Ajustes agora custam menos do que correção depois da fiscalização." },
+    { min: 50, title: "Processo com pendências", text: "O processo avançou com falhas relevantes de custeio ou de responsabilidade técnica. Nesse estado, a análise trava e a exigência volta." },
+    { min: 0, title: "Processo arquivado ou licença não concedida", text: "Economias em despesa obrigatória e informação inconsistente derrubaram o processo. O investimento feito até aqui se perdeu." }
+  ];
+
+  /* ---------------------------------------------------------------------
+     1-B. EXPEDIENTE — quem assina o trabalho
+
+     É só editar as listas abaixo: um nome por linha, entre aspas e
+     separados por vírgula. A ordem escrita aqui é a ordem que aparece na
+     tela de boas-vindas. Para tirar uma linha da ficha, apague a linha.
+     --------------------------------------------------------------------- */
+
+  var CREDITS = {
+    authors: [
+      "Luana Vitória Silva do Nascimento",
+      "July Vitória Correa Damasceno",
+      "Maria Clara Anaisse de Oliveira",
+      "Larissa Vitória Oliveira Queiroz",
+      "Bianca Gaspar da Silva"
+    ],
+    development: [
+      "Savio Martins"
+    ],
+    facts: [
+      ["Instituição", "Ufra"],
+      ["Disciplina", "Administração"],
+      ["Professor", "Williams Jorge da Cruz Macêdo · williams.macedo@ufra.edu.br"],
+      ["Base legal", LAW],
+      ["Formato", "Simulação didática"],
+      ["Ano", "2026"]
+      // , ["Orientação", "—"]
+    ]
+  };
+
+  /* ---------------------------------------------------------------------
+     1-B. LOGOS — quem realiza
+
+     Aparecem no pé da capa e no rodapé da splash. Enquanto não houver
+     arquivo, cada uma é desenhada aqui mesmo, com a tinta do resto do
+     jogo (traço chapado e registro deslocado em azul-carbono).
+
+     Para trocar por uma logo de verdade, preencha "src". Como o jogo roda
+     em arquivo único, o ideal é uma data URI:
+       src: "data:image/svg+xml;base64,..."   (ou "logo.png", se servir a
+                                               pasta inteira em vez do
+                                               assina-embaixo.html)
+     --------------------------------------------------------------------- */
+
+  /* ufra.png embutida: fundo branco removido, recortada e reduzida para
+     132px de altura — vai inteira no arquivo único, sem depender da pasta */
+  var LOGO_UFRA = "data:image/png;base64,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";
+
+  /* adm.png, mesmo tratamento */
+  var LOGO_ADM = "data:image/png;base64,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";
+
+  var LOGOS = [
+    { name: "Universidade Federal Rural da Amazônia", role: "Instituição", mark: "shield", src: LOGO_UFRA },
+    { name: "Administração", role: "Disciplina", mark: "seal", src: LOGO_ADM },
+    { name: "Assina Embaixo", role: "Projeto", mark: "sheet", src: "" }
+  ];
+
+  var MARK_ART = {
+    shield:
+      '<path d="M32 5 56 13v19c0 14-11 23-24 27C19 55 8 46 8 32V13Z"/>' +
+      '<path d="M32 21c-10 6-11 18 0 25 11-7 10-19 0-25Z"/>' +
+      '<path d="M32 46V24"/>',
+    seal:
+      '<circle cx="32" cy="32" r="25"/>' +
+      '<circle cx="32" cy="32" r="18" stroke-dasharray="3 4"/>' +
+      '<path d="m32 21 3.4 6.9 7.6 1.1-5.5 5.4 1.3 7.6-6.8-3.6-6.8 3.6 1.3-7.6-5.5-5.4 7.6-1.1Z"/>',
+    sheet:
+      '<path d="M13 5h27l11 11v43H13Z"/>' +
+      '<path d="M40 5v11h11"/>' +
+      '<path d="M21 28h22M21 36h22M21 44h14"/>'
+  };
+
+  function logoSvg(mark) {
+    var art = MARK_ART[mark] || MARK_ART.seal;
+    return '<svg class="logo__svg" viewBox="0 0 64 64" aria-hidden="true" focusable="false">' +
+      '<g class="logo__eco" transform="translate(2.4 2.4)">' + art + "</g>" +
+      '<g class="logo__tinta">' + art + "</g>" +
+      "</svg>";
+  }
+
+  function renderLogos() {
+    var items = LOGOS.map(function (logo) {
+      var mark = logo.src
+        ? '<img class="logo__img" src="' + fillCompany(logo.src) + '" alt="' + fillCompany(logo.name) + '">'
+        : logoSvg(logo.mark);
+      return '<li class="logo">' +
+        '<span class="logo__marca">' + mark + "</span>" +
+        '<span class="logo__nome">' + fillCompany(logo.name) + "</span>" +
+        '<span class="logo__papel">' + fillCompany(logo.role) + "</span>" +
+        "</li>";
+    }).join("");
+
+    ["#logos-capa", "#logos-splash"].forEach(function (selector) {
+      var target = document.querySelector(selector);
+      if (target) target.innerHTML = items;
+    });
+  }
+
+  /* ---------------------------------------------------------------------
+     1-C. CHARACTERS (bonecos) — a mesma carcaça, cascas diferentes
+
+     O motor do mascote é um só: as cinco expressões, a piscada, a
+     respiração e o braço que carimba valem para todos. Cada boneco troca
+     só a tinta, o que tem na cabeça, os óculos e o que carrega na mão
+     esquerda. O carimbo da mão direita fica em todos — é ele que anima no
+     acerto, e é o gesto que dá nome ao jogo.
+     --------------------------------------------------------------------- */
+
+  var CHARACTERS = [
+    { id: "stamp",  name: "Técnico Ambiental", color: "#26418f", hat: null,       glasses: true,  hand: "folder" },
+    { id: "biologist",  name: "Bióloga",     color: "#3f6b46", hat: "hat",   glasses: false, hand: "testTube" },
+    { id: "fanLady", name: "Engenheira", color: "#a33f6f", hat: "bun", glasses: false, hand: "fan" },
+    { id: "fashionGirl", name: "Advogada", color: "#e83e8c", hat: "longHair", glasses: false, hand: "handbag" },
+    { id: "athlete", name: "Geógrafa", color: "#168a84", hat: "ponytail", glasses: false, hand: "waterBottle" },
+    { id: "financeGirl", name: "Administradora", color: "#8b5bb5", hat: "bobBow", glasses: false, hand: "calculator" },
+    { id: "coordinator", name: "Arquiteta e Urbanista", color: "#c05a36", hat: "curlyHair", glasses: false, hand: "tablet" }
+  ];
+
+  // O cabelo padrão só aparece quando não há chapéu, senão fura a copa.
+  var HAIR_TUFTS = '<path class="m-linha" d="M56 27 q3-9 10-4 M70 23 q5-8 11-1 M45 37 q2-9 9-7"/>';
+
+  // Tudo aqui mora acima de y=42: abaixo disso começam as lentes.
+  var HAT_ART = {
+    helmet:
+      '<path class="m-carbono" d="M46 39 a24 18 0 0 1 48 0 z"/>' +
+      '<path class="m-carbono" d="M30 39 q40 9 80 0 v3 q-40 9 -80 0 z"/>' +
+      '<path class="m-linha" d="M70 21 V39 M58 24 v14 M82 24 v14"/>',
+    cap:
+      '<path class="m-carbono" d="M45 38 a25 21 0 0 1 50 0 z"/>' +
+      '<path class="m-carbono" d="M94 37 q18 3 16 9 q-11 3 -18 -2 z"/>' +
+      '<circle class="m-linha m-papel" cx="70" cy="19" r="3"/>',
+    hat:
+      '<path class="m-carbono" d="M53 40 q3-21 17-21 q14 0 17 21 z"/>' +
+      '<ellipse class="m-carbono" cx="70" cy="40" rx="42" ry="7"/>' +
+      '<path class="m-linha" d="M54 34 q16 5 32 0"/>',
+    bun:
+      '<circle class="m-tinta" cx="70" cy="17" r="9"/>' +
+      '<path class="m-tinta" d="M40 48 q3-28 30-28 q27 0 30 28 q-9-15 -30-15 q-21 0-30 15 z"/>',
+    longHair:
+      '<path fill="#6b3f2a" stroke="#171717" stroke-width="3" stroke-linejoin="round" d="M38 67 Q34 26 70 20 Q106 26 102 67 L96 89 L87 77 Q99 42 70 34 Q41 42 53 77 L44 89 Z"/>' +
+      '<path fill="#9a6244" stroke="#171717" stroke-width="2" d="M48 37 Q62 17 88 29 Q77 31 70 39 Q61 31 48 37 Z"/>' +
+      '<path class="m-carbono" d="M91 22 l3 5 6 1-5 4 1 6-5-3-5 3 1-6-5-4 6-1z"/>',
+    ponytail:
+      '<path fill="#42291f" stroke="#171717" stroke-width="3" d="M43 45 Q45 19 70 20 Q94 20 98 44 Q86 31 70 32 Q54 31 43 45 Z"/>' +
+      '<path fill="#42291f" stroke="#171717" stroke-width="3" d="M96 31 Q116 34 109 57 Q105 68 116 75 Q95 76 98 53 Q101 41 92 39 Z"/>' +
+      '<path class="m-carbono" d="M92 31 q8-5 13 2 q-6 7-13 1 z"/>',
+    bobBow:
+      '<path fill="#51362d" stroke="#171717" stroke-width="3" d="M39 53 Q38 21 70 20 Q102 21 101 53 L96 76 L88 69 Q96 39 70 33 Q44 39 52 69 L44 76 Z"/>' +
+      '<path class="m-carbono" d="M43 27 q-11-8-13 3 q2 11 14 4 l6 5 2-14-9 2 z"/>' +
+      '<circle class="m-papel m-linha" cx="45" cy="31" r="3"/>',
+    curlyHair:
+      '<g fill="#4a2c24" stroke="#171717" stroke-width="2.5">' +
+      '<circle cx="43" cy="43" r="11"/><circle cx="49" cy="29" r="11"/>' +
+      '<circle cx="62" cy="22" r="11"/><circle cx="77" cy="22" r="11"/>' +
+      '<circle cx="91" cy="29" r="11"/><circle cx="98" cy="43" r="11"/>' +
+      '<circle cx="42" cy="58" r="10"/><circle cx="98" cy="58" r="10"/>' +
+      '<circle cx="45" cy="72" r="9"/><circle cx="95" cy="72" r="9"/></g>' +
+      '<path fill="#7a4b38" stroke="#171717" stroke-width="2" d="M47 39 Q57 24 70 32 Q83 24 94 39 Q82 34 70 43 Q58 34 47 39 Z"/>',
+    peakedCap:
+      '<path class="m-carbono" d="M43 36 a27 20 0 0 1 54 0 z"/>' +
+      '<path class="m-carbono" d="M38 36 h64 v5 H38 z"/>' +
+      '<path class="m-tinta" d="M38 41 q-13 3 -9 7 q17 4 31 -3 z"/>'
+  };
+
+  var HAND_ART = {
+    folder:
+      '<g transform="rotate(-6 23 136)">' +
+      '<rect class="m-linha m-barra" x="8" y="124" width="30" height="24" rx="2"/>' +
+      '<path class="m-linha" d="M8 132 H38 M18 121 h10 v4"/></g>',
+    clipboard:
+      '<g transform="rotate(-8 24 134)">' +
+      '<rect class="m-linha m-papel" x="10" y="118" width="28" height="32" rx="2"/>' +
+      '<rect class="m-carbono" x="17" y="113" width="14" height="7" rx="2"/>' +
+      '<path class="m-linha" d="M16 128 h16 M16 134 h16 M16 140 h10"/></g>',
+    notebook:
+      '<g transform="rotate(-6 23 136)">' +
+      '<rect class="m-linha m-papel" x="10" y="119" width="28" height="21" rx="2"/>' +
+      '<path class="m-linha" d="M16 126 h16 M16 132 h10"/>' +
+      '<path class="m-linha m-barra" d="M5 148 h38 l-5-8 H10 z"/></g>',
+    testTube:
+      '<g transform="rotate(-16 24 132)">' +
+      '<rect class="m-linha m-barra" x="10" y="120" width="28" height="11" rx="5.5"/>' +
+      '<path class="m-linha" d="M17 120 v11 M31 120 v11"/></g>',
+    fan:
+      '<g transform="rotate(-12 29 133)">' +
+      '<path class="m-linha m-barra" d="M29 142 L5 119 A31 31 0 0 1 49 113 Z"/>' +
+      '<path class="m-linha" d="M29 142 L12 117 M29 142 L21 112 M29 142 L31 110 M29 142 L41 111 M8 122 Q27 130 47 116"/>' +
+      '<circle class="m-carbono" cx="29" cy="142" r="3"/></g>',
+    handbag:
+      '<g transform="rotate(-6 24 134)">' +
+      '<path class="m-linha m-barra" d="M8 126 h32 l-3 23 H11 Z"/>' +
+      '<path class="m-linha" d="M16 127 q1-13 8-13 q8 0 9 13"/>' +
+      '<circle class="m-carbono" cx="24" cy="137" r="3"/></g>',
+    waterBottle:
+      '<g transform="rotate(-10 24 134)">' +
+      '<path class="m-linha m-barra" d="M17 120 h14 v5 q4 3 4 8 v15 H13 v-15 q0-5 4-8 Z"/>' +
+      '<rect class="m-carbono" x="18" y="115" width="12" height="6" rx="2"/>' +
+      '<path class="m-linha" d="M14 136 h20 M20 130 q4 4 8 0"/></g>',
+    calculator:
+      '<g transform="rotate(-7 24 134)">' +
+      '<rect class="m-linha m-barra" x="10" y="116" width="28" height="34" rx="3"/>' +
+      '<rect class="m-linha m-papel" x="15" y="121" width="18" height="7" rx="1"/>' +
+      '<path class="m-carbono" d="M15 133 h4 v4 h-4z M22 133 h4 v4 h-4z M29 133 h4 v4 h-4z M15 140 h4 v4 h-4z M22 140 h4 v4 h-4z M29 140 h4 v4 h-4z"/></g>',
+    tablet:
+      '<g transform="rotate(-8 24 134)">' +
+      '<rect class="m-linha m-carbono" x="8" y="116" width="31" height="34" rx="4"/>' +
+      '<rect class="m-papel" x="12" y="121" width="23" height="23" rx="2"/>' +
+      '<path class="m-linha" d="M16 128 h15 M16 134 h11 M16 140 h7"/>' +
+      '<circle class="m-papel" cx="24" cy="147" r="1.5"/></g>'
+  };
+
+  function findCharacter(id) {
+    for (var i = 0; i < CHARACTERS.length; i++) {
+      if (CHARACTERS[i].id === id) return CHARACTERS[i];
+    }
+    return CHARACTERS[0];
+  }
+
+  /* ---------------------------------------------------------------------
+     2. ESTADO
+     --------------------------------------------------------------------- */
+
+  var STARTING_BUDGET = 140;
+  var METER_KEYS = ["budget", "compliance", "credibility", "protection"];
+  var METER_LABELS = {
+    budget: "Orçamento",
+    compliance: "Conformidade legal",
+    credibility: "Credibilidade técnica",
+    protection: "Proteção ambiental"
+  };
+
+  var TOTAL_DECISIONS = CONTENT.reduce(function (t, f) { return t + f.decisions.length; }, 0);
+
+  // Melhor e pior desempenho possíveis. A nota final é o saldo posicionado
+  // nessa escala — sem isso, quem erra metade termina sempre zerado.
+  var MAX_POINTS = CONTENT.reduce(function (t, f) {
+    return t + f.decisions.reduce(function (s, decision) { return s + decision.maxPoints; }, 0);
+  }, 0) + BONUS_ALL_OBLIGATIONS_MET.points + BONUS_ACCURACY_MAX;
+
+  var MIN_POINTS = CONTENT.reduce(function (t, f) {
+    return t + f.decisions.reduce(function (s, decision) {
+      if (decision.type === "choice") {
+        return s + Math.min.apply(null, decision.options.map(function (o) { return o.points; }));
+      }
+      if (decision.type === "sorting") return s + decision.cards.length * decision.pointsPerMiss;
+      return s + MULTI_SELECT_FAIL_POINTS;
+    }, 0);
+  }, 0);
+
+  var state;
+
+  function initialState(company) {
+    return {
+      company: company || "",
+      teams: [],
+      turn: 0,
+      phaseIndex: 0,
+      decisionIndex: 0,
+      mode: "briefing",
+      points: 0,
+      meters: { budget: STARTING_BUDGET, compliance: 60, credibility: 60, protection: 60 },
+      ledger: [],
+      bonus: [],
+      obligationsMet: true,
+      selection: null,
+      checked: [],
+      sorting: {},
+      dragging: null,
+      selectedCard: null
+    };
+  }
+
+  /* ---------------------------------------------------------------------
+     3. UTILITÁRIOS
+     --------------------------------------------------------------------- */
+
+  var $ = function (selector) { return document.querySelector(selector); };
+
+  function clamp(n, min, max) { return Math.max(min, Math.min(max, n)); }
+  function signed(n) { return (n > 0 ? "+" : "") + n; }
+  function signClass(n) { return n > 0 ? "mais" : n < 0 ? "menos" : ""; }
+  function pad2(n) { return n < 10 ? "0" + n : String(n); }
+  function optionLetter(i) { return "ABCDEFGH".charAt(i); }
+
+  // Escapa tambem aspas: o nome da equipe e o da empresa sao digitados pelo
+  // usuario e chegam a atributos (value="..."), onde um " fecharia o atributo.
+  function escapeHtml(t) {
+    return String(t)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  // Troca o marcador {empresa} do conteudo pela razao social do processo.
+  function fillCompany(t) {
+    var text = escapeHtml(t);
+    if (text.indexOf("{empresa}") < 0) return text;
+    return text.split("{empresa}").join(escapeHtml((state && state.company) || "a empresa"));
+  }
+
+  function currentDecision() { return CONTENT[state.phaseIndex].decisions[state.decisionIndex]; }
+  function currentCode() { return (state.phaseIndex + 1) + "." + (state.decisionIndex + 1); }
+
+  var STAMP_TITLES = {
+    ok: "Deferido",
+    ressalva: "Com ressalva",
+    erro: "Indeferido",
+    grave: "Informação falsa"
+  };
+
+
+  /* ---------------------------------------------------------------------
+     3B. MASCOTE — Seu Carimbo, o empreendedor
+     O SVG mora aqui para não poluir o HTML. As expressões são grupos
+     ligados/desligados por [data-estado] no CSS; as animações reiniciam
+     porque o estado volta a "idle" por um frame antes de trocar.
+     --------------------------------------------------------------------- */
+
+  var MASCOT_LINES = {
+    ok: ["Protocolado!", "Isso! Carimba aí.", "Tá no papel, tá valendo.", "O igarapé agradece.", "Anota que essa foi bonita."],
+    ressalva: ["Passou raspando.", "Quase. Quase mesmo.", "Vai dar exigência, mas vai.", "Tô suando aqui, viu?"],
+    erro: ["Ih, rapaz.", "O fiscal viu isso.", "Aí complicou.", "Volta, volta, volta!"],
+    grave: ["Ai, meu pai!", "Isso vira processo!", "Some, papel, some!", "Cadê meu advogado?"],
+    phase: [
+      "Cadê a papelada?",
+      "Chegou a parte que dói: a conta.",
+      "Estudo sem assinatura eu não protocolo.",
+      "Fiscal na porta. Respira.",
+      "Última folha. Capricha."
+    ],
+    final: {
+      ok: ["Licença na parede!", "Deu certo, e no talão."],
+      ressalva: ["Saiu, mas com exigência.", "Vai dar retrabalho..."],
+      erro: ["Arquivaram. Eu avisei.", "Perdi o estudo e o dinheiro."]
+    }
+  };
+
+  function mascotSvg(b) {
+    b = b || CHARACTERS[0];
+    return [
+      '<svg viewBox="0 0 140 152" xmlns="http://www.w3.org/2000/svg" focusable="false">',
+
+      '<ellipse class="m-sombra" cx="70" cy="147" rx="40" ry="5"/>',
+
+      // papéis voando (ficam fora do corpo para não tremerem junto)
+      '<g class="m-papeis">',
+      '<rect class="m-linha m-papel" x="6" y="16" width="16" height="21" rx="1" transform="rotate(-16 14 26)"/>',
+      '<rect class="m-linha m-papel" x="116" y="10" width="16" height="21" rx="1" transform="rotate(20 124 20)"/>',
+      '</g>',
+
+      '<g class="m-tudo">',
+
+      // registro deslocado, igual ao título da folha
+      '<g class="m-eco" transform="translate(3,3)">',
+      '<ellipse cx="70" cy="54" rx="31" ry="29"/>',
+      '<path d="M36 146 C36 112 48 100 70 100 C92 100 104 112 104 146 Z"/>',
+      '</g>',
+
+      '<g class="m-corpo-todo">',
+
+      '<rect class="m-linha m-papel" x="62" y="78" width="16" height="32" rx="5"/>',
+      '<path class="m-linha m-papel" d="M36 146 C36 112 48 100 70 100 C92 100 104 112 104 146 Z"/>',
+      '<path class="m-linha" d="M60 101 L70 114 L80 101"/>',
+
+      '<g class="m-gravata">',
+      '<path class="m-carbono" d="M70 114 L63 122 L70 146 L77 122 Z"/>',
+      '<path class="m-carbono" d="M64 104 L70 100 L76 104 L70 115 Z"/>',
+      '</g>',
+
+      // braço esquerdo: segura a pasta do processo
+      '<g class="m-braco m-braco--pasta">',
+      HAND_ART[b.hand] || HAND_ART.folder,
+      '<path class="m-membro-borda" d="M46 112 C34 116 28 122 29 128"/>',
+      '<path class="m-membro-fill" d="M46 112 C34 116 28 122 29 128"/>',
+      '<circle class="m-linha m-papel" cx="29" cy="129" r="6.5"/>',
+      '</g>',
+
+      // braço direito: segura o carimbo (é o que bate no acerto)
+      '<g class="m-braco m-braco--carimbo">',
+      '<rect class="m-carbono" x="103" y="108" width="22" height="8" rx="2"/>',
+      '<rect class="m-carbono" x="108" y="92" width="12" height="17" rx="3"/>',
+      '<path class="m-membro-borda" d="M94 112 C103 112 109 110 112 108"/>',
+      '<path class="m-membro-fill" d="M94 112 C103 112 109 110 112 108"/>',
+      '<circle class="m-linha m-papel" cx="114" cy="104" r="6.5"/>',
+      '</g>',
+
+      '<circle class="m-linha m-papel" cx="38" cy="56" r="6"/>',
+      '<circle class="m-linha m-papel" cx="102" cy="56" r="6"/>',
+      '<ellipse class="m-linha m-papel" cx="70" cy="54" rx="31" ry="29"/>',
+      (b.hat ? HAT_ART[b.hat] : HAIR_TUFTS),
+
+      '<g class="m-rubor">',
+      '<ellipse class="m-carmim" cx="48" cy="66" rx="6" ry="3.4" fill-opacity="0.45"/>',
+      '<ellipse class="m-carmim" cx="92" cy="66" rx="6" ry="3.4" fill-opacity="0.45"/>',
+      '</g>',
+
+      // óculos: nem todo boneco usa
+      b.glasses
+        ? '<circle class="m-lente" cx="57" cy="55" r="12"/>' +
+          '<circle class="m-lente" cx="83" cy="55" r="12"/>' +
+          '<circle class="m-linha" cx="57" cy="55" r="12"/>' +
+          '<circle class="m-linha" cx="83" cy="55" r="12"/>' +
+          '<path class="m-linha" d="M69 55 H71 M45 53 L36 54 M95 53 L104 54"/>'
+        : "",
+
+      '<g class="m-face">',
+
+      '<g class="f-idle">',
+      '<path class="m-linha" d="M47 38 q10-5 19-1 M74 37 q9-4 19 1"/>',
+      '<g class="m-olhos"><circle class="m-tinta" cx="57" cy="55" r="4.2"/><circle class="m-tinta" cx="83" cy="55" r="4.2"/></g>',
+      '<path class="m-linha" d="M60 73 q10 8 20 0"/>',
+      '</g>',
+
+      '<g class="f-ok">',
+      '<path class="m-linha" d="M46 34 q10-6 19-2 M75 32 q10-4 19 2"/>',
+      '<path class="m-linha" d="M50 58 q7-10 14 0 M76 58 q7-10 14 0"/>',
+      '<path class="m-tinta" d="M56 70 q14 16 28 0 z"/>',
+      '<ellipse class="m-carmim" cx="71" cy="76" rx="5" ry="3"/>',
+      '</g>',
+
+      '<g class="f-ressalva">',
+      '<path class="m-linha" d="M47 41 q10-7 19-3 M75 33 q10 3 19-1"/>',
+      '<circle class="m-tinta" cx="57" cy="56" r="4"/>',
+      '<path class="m-linha" d="M76 55 q7-6 14 0"/>',
+      '<path class="m-linha" d="M58 74 q5-5 10 0 t10 0"/>',
+      '</g>',
+
+      '<g class="f-erro">',
+      '<path class="m-linha" d="M48 42 L64 35 M92 42 L76 35"/>',
+      '<circle class="m-linha m-papel" cx="57" cy="55" r="7"/>',
+      '<circle class="m-tinta" cx="57" cy="56.5" r="3"/>',
+      '<circle class="m-linha m-papel" cx="83" cy="55" r="7"/>',
+      '<circle class="m-tinta" cx="83" cy="56.5" r="3"/>',
+      '<ellipse class="m-tinta" cx="70" cy="75" rx="6.5" ry="7.5"/>',
+      '</g>',
+
+      '<g class="f-grave">',
+      '<path class="m-linha" d="M48 40 L64 33 M92 40 L76 33"/>',
+      '<path class="m-linha" d="M51 49 l12 12 M63 49 l-12 12 M77 49 l12 12 M89 49 l-12 12"/>',
+      '<ellipse class="m-tinta" cx="70" cy="76" rx="10" ry="7"/>',
+      '</g>',
+
+      '</g>',
+
+      '<path class="m-suor" d="M108 30 q7 9 7 13 a7 7 0 0 1 -14 0 q0-4 7-13 z" fill="#26418f" fill-opacity="0.75"/>',
+
+      '<g class="m-brilho">',
+      '<path class="m-carbono" d="M24 27 L26.5 33.5 L33 36 L26.5 38.5 L24 45 L21.5 38.5 L15 36 L21.5 33.5 Z"/>',
+      '<path class="m-carbono" d="M116 21 L118 26 L123 28 L118 30 L116 35 L114 30 L109 28 L114 26 Z"/>',
+      '<path class="m-carbono" d="M104 66 L105.7 70.3 L110 72 L105.7 73.7 L104 78 L102.3 73.7 L98 72 L102.3 70.3 Z"/>',
+      '</g>',
+
+      '</g>',
+      '</g>',
+      '</svg>'
+    ].join("");
+  }
+
+  function mountMascot(selector, b) {
+    var el = $(selector);
+    if (!el) return;
+    b = b || CHARACTERS[0];
+    el.innerHTML = '<div class="mascote__balao"></div>' + mascotSvg(b);
+    el.style.setProperty("--carbono", b.color);
+    el.setAttribute("data-estado", "idle");
+  }
+
+  function setMascotState(selector, mascotState) {
+    var el = $(selector);
+    if (!el) return;
+    el.setAttribute("data-estado", "idle");
+    void el.offsetWidth; // força o reinício das animações
+    el.setAttribute("data-estado", mascotState);
+  }
+
+  function speak(selector, text, sticky) {
+    var el = $(selector);
+    if (!el) return;
+    var bubble = el.querySelector(".mascote__balao");
+    if (!bubble) return;
+    if (el.timer) clearTimeout(el.timer);
+    bubble.textContent = text;
+    bubble.classList.add("visivel");
+    if (!sticky) {
+      el.timer = setTimeout(function () { bubble.classList.remove("visivel"); }, 3200);
+    }
+  }
+
+  function hush(selector) {
+    var el = $(selector);
+    if (!el) return;
+    if (el.timer) clearTimeout(el.timer);
+    var bubble = el.querySelector(".mascote__balao");
+    if (bubble) bubble.classList.remove("visivel");
+  }
+
+  function react(selector, mascotState, text, sticky) {
+    setMascotState(selector, mascotState);
+    if (text) speak(selector, text, sticky);
+  }
+
+  function pickRandom(list) { return list[Math.floor(Math.random() * list.length)]; }
+
+  /* ---------------------------------------------------------------------
+     4. FICHA DE ACOMPANHAMENTO (barra lateral)
+     --------------------------------------------------------------------- */
+
+  function meterHtml(key) {
+    var value = state.meters[key];
+    var isMoney = key === "budget";
+    var ceiling = isMoney ? STARTING_BUDGET : 100;
+    var ratio = clamp(value / ceiling, 0, 1);
+    var filled = Math.round(ratio * 12);
+    var isCritical = !isMoney ? value < 30 : value < 25;
+
+    var blocks = "";
+    for (var i = 0; i < 12; i++) {
+      blocks += '<span class="medidor__bloco' + (i < filled ? " cheio" : "") + '"></span>';
+    }
+
+    return (
+      '<div class="medidor' + (isMoney ? " medidor--dinheiro" : "") + (isCritical ? " medidor--critico" : "") + '">' +
+      '<div class="medidor__topo"><span>' + METER_LABELS[key] + "</span>" +
+      '<span class="medidor__valor">' + value + (isMoney ? " cr" : "") + "</span></div>" +
+      '<div class="medidor__barra">' + blocks + "</div></div>"
+    );
+  }
+
+  function updateSidebar() {
+    $("#medidores").innerHTML = METER_KEYS.map(meterHtml).join("");
+
+    $("#etapas").innerHTML = CONTENT.map(function (phase, i) {
+      var cssClass = i < state.phaseIndex ? "feita" : i === state.phaseIndex ? "atual" : "";
+      var mark = i < state.phaseIndex ? "[x]" : i === state.phaseIndex ? "[>]" : "[ ]";
+      return '<li class="' + cssClass + '"><span class="marca">' + mark + "</span>" +
+        "<span>" + pad2(i + 1) + " " + fillCompany(phase.title) + "</span></li>";
+    }).join("");
+
+    var ledger = $("#extrato");
+    if (!state.ledger.length) {
+      ledger.innerHTML = '<li class="vazio">Nenhuma decisão registrada.</li>';
+    } else {
+      ledger.innerHTML = state.ledger.slice().reverse().map(function (l) {
+        return '<li><span class="cod">' + l.code + "</span>" +
+          '<span class="pontilhado"></span>' +
+          '<span class="val ' + signClass(l.points) + '">' + signed(l.points) + "</span></li>";
+      }).join("");
+    }
+
+    if (state.teams.length) $("#lista-equipes").innerHTML = scoreboardHtml(false);
+
+    $("#saldo-pontos").textContent = signed(state.points) + " pts";
+    $("#faixa-folha").textContent = "Fl. " + pad2(state.ledger.length + 1) + " / " + pad2(TOTAL_DECISIONS);
+  }
+
+  /* ---------------------------------------------------------------------
+     5. RENDERIZAÇÃO DAS TELAS
+     --------------------------------------------------------------------- */
+
+  function render() {
+    updateSidebar();
+    var phase = CONTENT[state.phaseIndex];
+    $("#dossie-fase").textContent = "Fase " + pad2(state.phaseIndex + 1) + " / " + pad2(CONTENT.length) + " — " + phase.title;
+    $("#dossie-decisao").textContent =
+      state.mode === "briefing" ? "Abertura da fase" : "Decisão " + currentCode();
+
+    if (state.mode === "briefing") renderBriefing();
+    else renderDecision();
+  }
+
+  function renderBriefing() {
+    var phase = CONTENT[state.phaseIndex];
+    $("#dossie-corpo").innerHTML =
+      '<div class="fase-abertura">' +
+      '<p class="numero">' + pad2(state.phaseIndex + 1) + "</p>" +
+      "<h2>" + fillCompany(phase.title) + "</h2>" +
+      "<p>" + fillCompany(phase.briefing) + "</p>" +
+      '<div class="acoes"><button class="botao botao--principal" id="btn-iniciar-fase">Começar a fase</button></div>' +
+      "</div>";
+
+    react("#mascote", "idle", MASCOT_LINES.phase[state.phaseIndex]);
+
+    $("#btn-iniciar-fase").addEventListener("click", function () {
+      state.mode = "decision";
+      render();
+      focusDossier();
+    });
+  }
+
+  function renderDecision() {
+    var decision = currentDecision();
+    state.selection = null;
+    state.checked = [];
+    state.sorting = {};
+    state.selectedCard = null;
+
+    var html = turnBannerHtml() +
+      '<h2 class="enunciado">' + fillCompany(decision.prompt) + "</h2>" +
+      (decision.context ? '<p class="contexto">' + fillCompany(decision.context) + "</p>" : "");
+
+    if (decision.type === "choice") html += optionListHtml(decision.options, false);
+    if (decision.type === "multiSelect") html += optionListHtml(decision.items, true);
+    if (decision.type === "sorting") html += sortingHtml(decision);
+
+    html +=
+      '<div class="acoes">' +
+      '<button class="botao botao--principal" id="btn-registrar" disabled>Registrar decisão</button>' +
+      '<span class="aviso oculto" id="aviso"></span>' +
+      "</div>";
+
+    $("#dossie-corpo").innerHTML = html;
+
+    if (state.teams.length) mountMascot("#mascote", currentCharacter());
+    setMascotState("#mascote", "idle");
+    hush("#mascote");
+
+    if (decision.type === "sorting") bindSorting(decision);
+    else bindOptions(decision.type === "multiSelect");
+
+    $("#btn-registrar").addEventListener("click", submitDecision);
+  }
+
+  function optionListHtml(items, isMultiSelect) {
+    return '<div class="lista-opcoes" role="group">' + items.map(function (o, i) {
+      return '<button type="button" class="opcao" data-i="' + i + '" aria-pressed="false">' +
+        '<span class="opcao__caixa">' + (isMultiSelect ? "[ ]" : optionLetter(i) + " [ ]") + "</span>" +
+        "<span>" + fillCompany(o.txt) +
+        (o.cost ? '<span class="custo">' + fillCompany(o.cost) + "</span>" : "") +
+        "</span></button>";
+    }).join("") + "</div>";
+  }
+
+  function bindOptions(isMultiSelect) {
+    var buttons = Array.prototype.slice.call(document.querySelectorAll(".opcao"));
+    buttons.forEach(function (b) {
+      b.addEventListener("click", function () {
+        var i = Number(b.getAttribute("data-i"));
+        if (isMultiSelect) {
+          var pos = state.checked.indexOf(i);
+          if (pos >= 0) state.checked.splice(pos, 1);
+          else state.checked.push(i);
+        } else {
+          state.selection = i;
+        }
+        buttons.forEach(function (other) {
+          var j = Number(other.getAttribute("data-i"));
+          var active = isMultiSelect ? state.checked.indexOf(j) >= 0 : state.selection === j;
+          other.setAttribute("aria-pressed", active ? "true" : "false");
+          other.querySelector(".opcao__caixa").textContent =
+            (isMultiSelect ? "" : optionLetter(j) + " ") + (active ? "[x]" : "[ ]");
+        });
+        var ready = isMultiSelect ? state.checked.length > 0 : state.selection !== null;
+        $("#btn-registrar").disabled = !ready;
+      });
+    });
+  }
+
+  /* ---------------------------------------------------------------------
+     6. TRIAGEM: arrastar ou tocar
+     --------------------------------------------------------------------- */
+
+  function sortingHtml(decision) {
+    var cards = decision.cards.map(function (c, i) {
+      return '<button type="button" class="cartao" draggable="true" data-id="' + c.id + '">' +
+        '<span class="tag">Item ' + pad2(i + 1) + "</span>" + fillCompany(c.txt) + "</button>";
+    }).join("");
+
+    var caixas = decision.zones.map(function (z) {
+      return '<div class="zona" data-destino="' + z.id + '" role="button" tabindex="0" ' +
+        'aria-label="Classificar em ' + fillCompany(z.title) + '">' +
+        '<div class="zona__titulo"><span>' + fillCompany(z.title) + "</span><span data-contador='" + z.id + "'>0</span></div>" +
+        '<div class="zona__conteudo"></div></div>';
+    }).join("");
+
+    return '<div class="triagem">' +
+      '<div class="triagem__pilha"><div class="zona zona--pilha" data-destino="pilha" role="button" tabindex="0" aria-label="Devolver à pilha">' +
+      '<div class="zona__titulo"><span>Itens a classificar</span><span id="contador-pilha">' + decision.cards.length + "</span></div>" +
+      '<div class="zona__conteudo">' + cards + "</div></div></div>" +
+      caixas + "</div>";
+  }
+
+  function bindSorting(decision) {
+    var zones = Array.prototype.slice.call(document.querySelectorAll(".zona"));
+    var cards = Array.prototype.slice.call(document.querySelectorAll(".cartao"));
+
+    function moveCard(id, target) {
+      var card = document.querySelector('.cartao[data-id="' + id + '"]');
+      var zone = document.querySelector('.zona[data-destino="' + target + '"] .zona__conteudo');
+      if (!card || !zone) return;
+      zone.appendChild(card);
+      card.classList.remove("selecionado");
+      state.selectedCard = null;
+      if (target === "pilha") delete state.sorting[id];
+      else state.sorting[id] = target;
+      updateCounters(decision);
+    }
+
+    cards.forEach(function (c) {
+      c.addEventListener("click", function () {
+        var inStack = c.closest(".zona").getAttribute("data-destino") === "pilha";
+        if (!inStack) { moveCard(c.getAttribute("data-id"), "pilha"); return; }
+        var wasSelected = c.classList.contains("selecionado");
+        cards.forEach(function (o) { o.classList.remove("selecionado"); });
+        if (wasSelected) { state.selectedCard = null; return; }
+        c.classList.add("selecionado");
+        state.selectedCard = c.getAttribute("data-id");
+      });
+      c.addEventListener("dragstart", function (ev) {
+        state.dragging = c.getAttribute("data-id");
+        if (ev.dataTransfer) {
+          ev.dataTransfer.effectAllowed = "move";
+          ev.dataTransfer.setData("text/plain", state.dragging);
+        }
+      });
+      c.addEventListener("dragend", function () { state.dragging = null; });
+    });
+
+    zones.forEach(function (z) {
+      var target = z.getAttribute("data-destino");
+      z.addEventListener("dragover", function (ev) { ev.preventDefault(); z.classList.add("sobre"); });
+      z.addEventListener("dragleave", function () { z.classList.remove("sobre"); });
+      z.addEventListener("drop", function (ev) {
+        ev.preventDefault();
+        z.classList.remove("sobre");
+        var id = (ev.dataTransfer && ev.dataTransfer.getData("text/plain")) || state.dragging;
+        if (id) moveCard(id, target);
+      });
+      z.addEventListener("click", function (ev) {
+        if (ev.target.closest(".cartao")) return;
+        if (state.selectedCard) moveCard(state.selectedCard, target);
+      });
+      z.addEventListener("keydown", function (ev) {
+        if (ev.key !== "Enter" && ev.key !== " ") return;
+        ev.preventDefault();
+        if (state.selectedCard) moveCard(state.selectedCard, target);
+      });
+    });
+  }
+
+  function updateCounters(decision) {
+    var classificados = Object.keys(state.sorting).length;
+    $("#contador-pilha").textContent = String(decision.cards.length - classificados);
+    decision.zones.forEach(function (z) {
+      var n = decision.cards.filter(function (c) { return state.sorting[c.id] === z.id; }).length;
+      var target = document.querySelector('[data-contador="' + z.id + '"]');
+      if (target) target.textContent = String(n);
+    });
+    $("#btn-registrar").disabled = classificados !== decision.cards.length;
+  }
+
+  /* ---------------------------------------------------------------------
+     7. AVALIAÇÃO
+     --------------------------------------------------------------------- */
+
+  function evaluate() {
+    var decision = currentDecision();
+    if (decision.type === "choice") return evaluateChoice(decision);
+    if (decision.type === "multiSelect") return evaluateMultiSelect(decision);
+    return evaluateSorting(decision);
+  }
+
+  function evaluateChoice(decision) {
+    var o = decision.options[state.selection];
+    return {
+      verdict: o.verdict,
+      points: o.points,
+      effects: o.effects || {},
+      text: o.feedback,
+      legalBasis: decision.legalBasis,
+      bonus: o.bonus || null,
+      obligationsMet: o.obligationsMet !== false
+    };
+  }
+
+  function evaluateMultiSelect(decision) {
+    var hits = 0, falsePositives = 0;
+    decision.items.forEach(function (item, i) {
+      var marcado = state.checked.indexOf(i) >= 0;
+      if (marcado && item.isProblem) hits++;
+      if (marcado && !item.isProblem) falsePositives++;
+    });
+
+    var verdict = "erro";
+    if (hits >= decision.thresholds.ok.hits && falsePositives <= decision.thresholds.ok.falsePositives) verdict = "ok";
+    else if (hits >= decision.thresholds.ressalva.hits && falsePositives <= decision.thresholds.ressalva.falsePositives) verdict = "ressalva";
+
+    var points = verdict === "ok" ? decision.maxPoints
+      : verdict === "ressalva" ? Math.round(decision.maxPoints / 2)
+      : MULTI_SELECT_FAIL_POINTS;
+
+    return {
+      verdict: verdict,
+      points: points,
+      effects: decision.effects[verdict] || {},
+      text: decision.feedback[verdict],
+      legalBasis: decision.legalBasis,
+      obligationsMet: true,
+      answerKey: decision.items.map(function (item, i) {
+        var marcado = state.checked.indexOf(i) >= 0;
+        return {
+          txt: item.txt,
+          note: item.note,
+          correct: marcado === item.isProblem,
+          tag: item.isProblem ? "impede" : "em ordem"
+        };
+      })
+    };
+  }
+
+  function evaluateSorting(decision) {
+    var hits = 0, misses = 0;
+    var answerKey = decision.cards.map(function (c) {
+      var correct = state.sorting[c.id] === c.target;
+      if (correct) hits++; else misses++;
+      var zoneTitle = decision.zones.filter(function (z) { return z.id === c.target; })[0].title;
+      return { txt: c.txt, note: c.note, correct: correct, tag: zoneTitle };
+    });
+
+    var verdict = misses === 0 ? "ok" : misses <= 2 ? "ressalva" : "erro";
+    var points = hits * decision.pointsPerHit + misses * decision.pointsPerMiss;
+    var swing = hits - misses;
+
+    return {
+      verdict: verdict,
+      points: points,
+      effects: { compliance: swing * 2, credibility: Math.round(swing / 2) },
+      text: decision.feedback[verdict],
+      legalBasis: decision.legalBasis,
+      obligationsMet: misses === 0,
+      answerKey: answerKey,
+      summary: hits + " de " + decision.cards.length + " itens classificados corretamente"
+    };
+  }
+
+  /* ---------------------------------------------------------------------
+     8. REGISTRO E RETORNO JURÍDICO
+     --------------------------------------------------------------------- */
+
+  function submitDecision() {
+    var outcome = evaluate();
+    var entries = [];
+
+    state.points += outcome.points;
+    if (outcome.bonus) {
+      state.points += outcome.bonus.points;
+      state.bonus.push(outcome.bonus);
+    }
+    if (!outcome.obligationsMet) state.obligationsMet = false;
+
+    var team = currentTeam();
+    if (team) {
+      team.points += outcome.points + (outcome.bonus ? outcome.bonus.points : 0);
+      team.decisions++;
+    }
+
+    METER_KEYS.forEach(function (key) {
+      var delta = outcome.effects[key];
+      if (!delta) return;
+      var ceiling = key === "budget" ? 999 : 100;
+      var floor = key === "budget" ? -999 : 0;
+      state.meters[key] = clamp(state.meters[key] + delta, floor, ceiling);
+      entries.push({ label: METER_LABELS[key], delta: delta, unit: key === "budget" ? " cr" : "" });
+    });
+
+    state.ledger.push({
+      code: currentCode(),
+      phaseTitle: CONTENT[state.phaseIndex].title,
+      prompt: currentDecision().prompt,
+      verdict: outcome.verdict,
+      points: outcome.points + (outcome.bonus ? outcome.bonus.points : 0),
+      legalBasis: outcome.legalBasis
+    });
+
+    state.mode = "feedback";
+    updateSidebar();
+    renderFeedback(outcome, entries);
+  }
+
+  function renderFeedback(outcome, entries) {
+    var total = outcome.points + (outcome.bonus ? outcome.bonus.points : 0);
+    var stampClass = outcome.verdict === "grave" ? "erro" : outcome.verdict;
+
+    var html =
+      '<div class="retorno">' +
+      '<div class="retorno__topo">' +
+      '<span class="carimbo carimbo--' + stampClass + '">' + STAMP_TITLES[outcome.verdict] + "</span>" +
+      '<span class="saldo ' + signClass(total) + '">' + signed(total) + " pts</span>" +
+      (outcome.summary ? '<span class="custo">' + fillCompany(outcome.summary) + "</span>" : "") +
+      "</div>" +
+      '<div class="retorno__texto"><p>' + fillCompany(outcome.text) + "</p>" +
+      (outcome.bonus ? "<p><strong>Bônus:</strong> " + fillCompany(outcome.bonus.name) + " (" + signed(outcome.bonus.points) + " pontos).</p>" : "") +
+      '<p class="fundamento">Fundamento: ' + fillCompany(outcome.legalBasis) + "</p></div>";
+
+    if (entries.length) {
+      html += '<ul class="lancamentos">' + entries.map(function (l) {
+        return "<li><span>" + fillCompany(l.label) + "</span><span class='pontilhado'></span>" +
+          '<span class="val ' + signClass(l.delta) + '">' + signed(l.delta) + l.unit + "</span></li>";
+      }).join("") + "</ul>";
+    }
+
+    if (outcome.answerKey) {
+      html += '<ul class="gabarito">' + outcome.answerKey.map(function (g) {
+        return "<li>" + '<span class="sinal ' + (g.correct ? "certo" : "errado") + '">' +
+          (g.correct ? "[x]" : "[!]") + "</span><span>" + fillCompany(g.txt) + "</span>" +
+          '<span class="nota">' + fillCompany(g.tag) + " · " + fillCompany(g.note) + "</span></li>";
+      }).join("") + "</ul>";
+    }
+
+    var isLast = state.phaseIndex === CONTENT.length - 1 &&
+      state.decisionIndex === CONTENT[state.phaseIndex].decisions.length - 1;
+
+    html += '<div class="acoes"><button class="botao botao--principal" id="btn-seguir">' +
+      (isLast ? "Emitir parecer final" : "Seguir") + "</button></div></div>";
+
+    $("#dossie-corpo").innerHTML = html;
+    $("#btn-seguir").addEventListener("click", advance);
+    react("#mascote", outcome.verdict, pickRandom(MASCOT_LINES[outcome.verdict]));
+    focusDossier();
+  }
+
+  function advance() {
+    var phase = CONTENT[state.phaseIndex];
+    if (state.decisionIndex < phase.decisions.length - 1) {
+      state.decisionIndex++;
+      state.mode = "decision";
+      render();
+    } else if (state.phaseIndex < CONTENT.length - 1) {
+      state.phaseIndex++;
+      state.decisionIndex = 0;
+      state.mode = "briefing";
+      render();
+    } else {
+      issueFinalReport();
+    }
+    focusDossier();
+  }
+
+  function focusDossier() {
+    var target = $("#dossie-corpo");
+    target.setAttribute("tabindex", "-1");
+    target.focus({ preventScroll: true });
+  }
+
+  /* ---------------------------------------------------------------------
+     9. PARECER FINAL
+     --------------------------------------------------------------------- */
+
+  function issueFinalReport() {
+    var points = state.points;
+    if (state.obligationsMet) {
+      points += BONUS_ALL_OBLIGATIONS_MET.points;
+      state.bonus.push(BONUS_ALL_OBLIGATIONS_MET);
+    }
+
+    var score = clamp(Math.round(((points - MIN_POINTS) / (MAX_POINTS - MIN_POINTS)) * 100), 0, 100);
+    var band = GRADE_BANDS.filter(function (f) { return score >= f.min; })[0];
+
+    $("#nota-valor").textContent = score;
+    $("#nota-classificacao").textContent = band.title;
+    $("#nota-texto").textContent = band.text;
+    $("#nota-bruta").textContent =
+      "Saldo bruto: " + signed(points) + " pontos · escala de " + MIN_POINTS + " a " + MAX_POINTS;
+
+    $("#medidores-finais").innerHTML = METER_KEYS.map(meterHtml).join("");
+
+    $("#bonus-final").innerHTML = state.bonus.length
+      ? state.bonus.map(function (b) {
+          return "<li><span>" + fillCompany(b.name) + "</span><span class='pontilhado'></span>" +
+            '<span class="val mais">' + signed(b.points) + "</span></li>";
+        }).join("")
+      : "<li><span>Nenhum bônus conquistado</span></li>";
+
+    $("#extrato-final").innerHTML = state.ledger.map(function (l) {
+      return '<li><span class="cod">' + l.code + "</span>" +
+        "<span>" + fillCompany(l.prompt) + '<br><span class="cod">' + fillCompany(l.legalBasis) + "</span></span>" +
+        '<span class="pontilhado"></span>' +
+        '<span class="val ' + signClass(l.points) + '">' + signed(l.points) + "</span></li>";
+    }).join("");
+
+    $("#artigos").innerHTML = ARTICLES.map(function (a) {
+      return '<li><span class="art">' + fillCompany(a.art) + "</span><span>" + fillCompany(a.txt) + "</span></li>";
+    }).join("");
+
+    var block = $("#bloco-placar");
+    if (state.teams.length) {
+      $("#placar-final").innerHTML = scoreboardHtml(true);
+      block.classList.remove("oculto");
+    } else {
+      block.classList.add("oculto");
+    }
+
+    updateCompanyLabels();
+
+    var mood = score >= 70 ? "ok" : score >= 50 ? "ressalva" : "erro";
+    var leader = state.teams.length
+      ? findCharacter(state.teams.slice().sort(function (a, b) {
+          return b.points - a.points;
+        })[0].character)
+      : CHARACTERS[0];
+    mountMascot("#mascote-final", leader);
+    react("#mascote-final", score >= 50 ? mood : "grave", pickRandom(MASCOT_LINES.final[mood]), true);
+
+    if (state.meters.budget <= 0) {
+      $("#alerta-caixa").classList.remove("oculto");
+    }
+
+    showScreen("#tela-final");
+  }
+
+
+  /* ---------------------------------------------------------------------
+     8-B. EXPEDIENTE DA CAPA
+     --------------------------------------------------------------------- */
+
+  function creditsListHtml(names, modifier) {
+    return names.map(function (name, i) {
+      return '<li>' +
+        '<span class="expediente__ordem">' + pad2(i + 1) + '</span>' +
+        '<span class="expediente__nome' + (modifier || "") + '">' + fillCompany(name) + '</span>' +
+        '</li>';
+    }).join("");
+  }
+
+  function renderCredits() {
+    $("#expediente-autores").innerHTML = creditsListHtml(CREDITS.authors, "");
+    $("#expediente-dev").innerHTML = creditsListHtml(CREDITS.development, " expediente__nome--dev");
+    $("#expediente-ficha").innerHTML = CREDITS.facts.map(function (row) {
+      return '<li>' +
+        '<span class="rotulo">' + fillCompany(row[0]) + '</span>' +
+        '<span class="pontilhado"></span>' +
+        '<span class="valor">' + fillCompany(row[1]) + '</span>' +
+        '</li>';
+    }).join("");
+  }
+
+
+  /* ---------------------------------------------------------------------
+     8-C. EQUIPES — cadastro e rodízio
+
+     Formato: um processo só, conduzido pela turma. Cada pessoa assume
+     uma fase temática inteira; o caixa e os indicadores pertencem ao
+     processo. O placar guarda a contribuição de cada responsável.
+     --------------------------------------------------------------------- */
+
+  var TEAM_SLOTS = CONTENT.length;
+  var teamDraft = [];
+
+  function renderTeamSetup() {
+    if (!teamDraft.length) {
+      for (var i = 0; i < TEAM_SLOTS; i++) {
+        teamDraft.push({ character: i % CHARACTERS.length, name: "", phaseIndex: i });
+      }
+    }
+
+    $("#equipes-grade").innerHTML = teamDraft.map(function (c, i) {
+      return '<div class="equipe" id="equipe-' + i + '">' +
+        '<p class="equipe__rotulo">Pessoa ' + pad2(i + 1) + "</p>" +
+        '<div class="equipe__palco">' +
+        '<button type="button" class="seta" data-i="' + i + '" data-dir="-1" aria-label="Boneco anterior">&#9664;</button>' +
+        '<div class="mascote figurinha" id="fig-' + i + '" data-estado="idle" aria-hidden="true"></div>' +
+        '<button type="button" class="seta" data-i="' + i + '" data-dir="1" aria-label="Próximo boneco">&#9654;</button>' +
+        "</div>" +
+        '<p class="equipe__boneco" id="fig-nome-' + i + '"></p>' +
+        '<p class="equipe__tema">Tema: ' + fillCompany(CONTENT[c.phaseIndex].title) + '</p>' +
+        '<input class="campo-form__entrada equipe__campo" id="equipe-nome-' + i + '" type="text" ' +
+        'maxlength="24" placeholder="nome da pessoa" autocomplete="off" value="' + fillCompany(c.name) + '">' +
+        "</div>";
+    }).join("");
+
+    Array.prototype.slice.call(document.querySelectorAll(".seta")).forEach(function (b) {
+      b.addEventListener("click", function () {
+        cycleCharacter(Number(b.getAttribute("data-i")), Number(b.getAttribute("data-dir")));
+      });
+    });
+
+    teamDraft.forEach(function (c, i) {
+      var field = $("#equipe-nome-" + i);
+      field.addEventListener("input", function () {
+        teamDraft[i].name = field.value;
+        markEmptySlots();
+        $("#erro-equipes").classList.add("oculto");
+      });
+      renderTeamSlot(i);
+    });
+  }
+
+  function renderTeamSlot(i) {
+    var b = CHARACTERS[teamDraft[i].character];
+    mountMascot("#fig-" + i, b);
+    $("#fig-nome-" + i).textContent = b.name;
+    markEmptySlots();
+  }
+
+  // A vaga só desbota quando já existe alguma pessoa nomeada — antes disso
+  // as quatro estão igualmente disponíveis e apagá-las só confunde.
+  function markEmptySlots() {
+    var anyNamed = teamDraft.some(function (c) { return c.name.trim(); });
+    teamDraft.forEach(function (c, i) {
+      $("#equipe-" + i).classList.toggle("equipe--fora", anyNamed && !c.name.trim());
+    });
+  }
+
+  // Anda até o próximo boneco que ninguém mais escolheu.
+  function cycleCharacter(i, direction) {
+    var taken = teamDraft.map(function (c, j) { return j === i ? -1 : c.character; });
+    var b = teamDraft[i].character;
+    for (var attempt = 0; attempt < CHARACTERS.length; attempt++) {
+      b = (b + direction + CHARACTERS.length) % CHARACTERS.length;
+      if (taken.indexOf(b) < 0) break;
+    }
+    teamDraft[i].character = b;
+    renderTeamSlot(i);
+    setMascotState("#fig-" + i, "ok");
+  }
+
+  function openTeamSetup() {
+    gameMode = "equipe";
+    showScreen("#tela-equipes");
+    renderTeamSetup();
+  }
+
+  function startTeamGame() {
+    var company = $("#empresa-equipes").value.trim().replace(/\s+/g, " ");
+    var errorBox = $("#erro-equipes");
+
+    var teams = teamDraft.filter(function (c) {
+      return c.name.trim();
+    }).map(function (c) {
+      return {
+        name: c.name.trim().replace(/\s+/g, " "),
+        character: CHARACTERS[c.character].id,
+        points: 0,
+        decisions: 0,
+        phaseIndex: c.phaseIndex
+      };
+    });
+
+    if (teams.length < TEAM_SLOTS) {
+      errorBox.textContent = "Informe o nome das cinco pessoas responsáveis, uma para cada tema.";
+      errorBox.classList.remove("oculto");
+      return;
+    }
+    if (company.length < 2) {
+      errorBox.textContent = "Escreva a razão social do empreendimento.";
+      errorBox.classList.remove("oculto");
+      $("#empresa-equipes").focus();
+      return;
+    }
+
+    errorBox.classList.add("oculto");
+    startGame(company, teams);
+  }
+
+  function suggestTeamCompanyName() {
+    var field = $("#empresa-equipes");
+    var name = pickRandom(COMPANY_NAME_SUGGESTIONS);
+    while (name === field.value && COMPANY_NAME_SUGGESTIONS.length > 1) name = pickRandom(COMPANY_NAME_SUGGESTIONS);
+    field.value = name;
+    $("#erro-equipes").classList.add("oculto");
+  }
+
+  function currentTeam() {
+    if (!state.teams.length) return null;
+    return state.teams.filter(function (person) {
+      return person.phaseIndex === state.phaseIndex;
+    })[0] || state.teams[state.phaseIndex % state.teams.length];
+  }
+
+  function currentCharacter() {
+    var team = currentTeam();
+    return team ? findCharacter(team.character) : CHARACTERS[0];
+  }
+
+  function turnBannerHtml() {
+    var team = currentTeam();
+    if (!team) return "";
+    return '<p class="vez">' +
+      '<span class="vez__cor" style="background:' + findCharacter(team.character).color + '"></span>' +
+      "<span>Responsável: " + fillCompany(team.name) + " · " + fillCompany(CONTENT[state.phaseIndex].title) + "</span>" +
+      '<span class="vez__resto">' + signed(team.points) + " pts</span></p>";
+  }
+
+  function scoreboardHtml(sorted) {
+    var list = state.teams.slice();
+    if (sorted) list.sort(function (a, b) { return b.points - a.points; });
+
+    return list.map(function (team, i) {
+      var isCurrent = !sorted && currentTeam() === team;
+      return '<li class="' + (isCurrent ? "agora" : "") + '">' +
+        (sorted ? '<span class="pos">' + pad2(i + 1) + "º</span>" : "") +
+        '<span class="cor" style="background:' + findCharacter(team.character).color + '"></span>' +
+        '<span class="nome">' + fillCompany(team.name) + "</span>" +
+        '<span class="pontilhado"></span>' +
+        '<span class="val ' + signClass(team.points) + '">' + signed(team.points) + " pts</span></li>";
+    }).join("");
+  }
+
+  /* ---------------------------------------------------------------------
+     10. NAVEGAÇÃO ENTRE TELAS
+     --------------------------------------------------------------------- */
+
+  function updateCompanyLabels() {
+    var name = state.company || "—";
+    var kicker = $("#olho-processo");
+    if (kicker) kicker.textContent = "Processo 000.4821/2025 · " + name + " · Capanema/PA";
+    var sidebarName = $("#ficha-empresa");
+    if (sidebarName) sidebarName.textContent = name;
+    var reportName = $("#rubrica-parecer");
+    if (reportName) reportName.textContent = "Parecer final · " + name;
+    var setupName = $("#ficha-empreendedor");
+    if (setupName) setupName.textContent = state.company || "—";
+  }
+
+  function previewCompanyName() {
+    var value = $("#nome-empresa").value.trim();
+    $("#ficha-empreendedor").textContent = value || "—";
+    if (value.length >= 2) $("#erro-empresa").classList.add("oculto");
+  }
+
+  function suggestCompanyName() {
+    var field = $("#nome-empresa");
+    var name = pickRandom(COMPANY_NAME_SUGGESTIONS);
+    while (name === field.value && COMPANY_NAME_SUGGESTIONS.length > 1) name = pickRandom(COMPANY_NAME_SUGGESTIONS);
+    field.value = name;
+    previewCompanyName();
+    react("#mascote-abertura", "ok", "Esse serve!");
+  }
+
+  function startSoloGame() {
+    var field = $("#nome-empresa");
+    var name = field.value.trim().replace(/\s+/g, " ");
+    if (name.length < 2) {
+      $("#erro-empresa").classList.remove("oculto");
+      react("#mascote-abertura", "erro", "Cadê o nome?");
+      field.focus();
+      return;
+    }
+    $("#erro-empresa").classList.add("oculto");
+    startGame(name);
+  }
+
+  // "individual" ou "equipe". Por enquanto muda só o rótulo do cadastro e a
+  // ficha; a mecânica de rodízio entre equipes entra num passo seguinte.
+  var gameMode = "individual";
+
+  function openSetupScreen(mode) {
+    gameMode = mode === "equipe" ? "equipe" : "individual";
+    var isTeamMode = gameMode === "equipe";
+    var field = $("#nome-empresa");
+
+    $("#rotulo-nome").textContent = isTeamMode
+      ? "Nome da pessoa responsável e do empreendimento"
+      : "Razão social do empreendimento";
+    field.placeholder = isTeamMode
+      ? "ex.: Luana · Amanari Alimentos Ltda."
+      : "ex.: Amanari Alimentos Ltda.";
+    $("#ficha-modo").textContent = isTeamMode ? "Por responsáveis" : "Individual";
+
+    showScreen("#tela-abertura");
+    previewCompanyName();
+    react("#mascote-abertura", "idle",
+      isTeamMode ? "Quem ficará responsável por cada tema?" : "Como vai se chamar a empresa?", true);
+    field.focus();
+  }
+
+  function showCover() {
+    showScreen("#tela-boas-vindas");
+    react("#mascote-capa", "idle", "Quem assina o trabalho.", true);
+  }
+
+  function restartProcess() {
+    if (gameMode === "equipe") {
+      openTeamSetup();
+      return;
+    }
+    var field = $("#nome-empresa");
+    field.value = state.company;
+    previewCompanyName();
+    showScreen("#tela-abertura");
+    react("#mascote-abertura", "idle", "Outro processo? Bora.", true);
+    field.focus();
+  }
+
+  function showScreen(selector) {
+    ["#tela-boas-vindas", "#tela-equipes", "#tela-abertura", "#tela-jogo", "#tela-final"].forEach(function (id) {
+      $(id).classList.toggle("oculto", id !== selector);
+    });
+    if (selector === "#tela-boas-vindas") $("#faixa-folha").textContent = "Fl. 00 · capa";
+    else if (selector === "#tela-equipes") $("#faixa-folha").textContent = "Fl. 00 · responsáveis";
+    else if (selector === "#tela-abertura") $("#faixa-folha").textContent = "Fl. 01";
+    else if (selector === "#tela-final") $("#faixa-folha").textContent = "Parecer final";
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function startGame(name, teams) {
+    state = initialState(name);
+    state.teams = teams || [];
+    $("#alerta-caixa").classList.add("oculto");
+    $("#ficha-equipes").classList.toggle("oculto", !state.teams.length);
+    updateCompanyLabels();
+    showScreen("#tela-jogo");
+    mountMascot("#mascote", currentCharacter());
+    render();
+  }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    state = initialState("");
+    renderCredits();
+    renderLogos();
+    mountMascot("#mascote-capa");
+    speak("#mascote-capa", "Bem-vindo ao processo!", true);
+    mountMascot("#mascote-abertura");
+    speak("#mascote-abertura", "Como vai se chamar a empresa?", true);
+
+    $("#btn-individual").addEventListener("click", function () { openSetupScreen("individual"); });
+    $("#btn-equipe").addEventListener("click", openTeamSetup);
+    $("#btn-abrir-equipes").addEventListener("click", startTeamGame);
+    $("#btn-sugerir-equipes").addEventListener("click", suggestTeamCompanyName);
+    $("#btn-voltar-capa").addEventListener("click", showCover);
+    $("#btn-capa").addEventListener("click", showCover);
+    $("#btn-abrir").addEventListener("click", startSoloGame);
+    $("#btn-sugerir").addEventListener("click", suggestCompanyName);
+    $("#btn-recomecar").addEventListener("click", restartProcess);
+    $("#nome-empresa").addEventListener("input", previewCompanyName);
+    $("#nome-empresa").addEventListener("keydown", function (ev) {
+      if (ev.key !== "Enter") return;
+      ev.preventDefault();
+      startSoloGame();
+    });
+    $("#btn-imprimir").addEventListener("click", function () { window.print(); });
+    $("#total-decisoes").textContent = TOTAL_DECISIONS;
+    $("#pontos-max").textContent = MIN_POINTS + " a " + MAX_POINTS + " pts";
+  });
+})();
