@@ -29,16 +29,25 @@ e cada uma assume um tema durante sua etapa. Duração: 15 a 20 minutos, sem cad
 
 ## Estrutura
 
-| Arquivo | Papel |
-| --- | --- |
-| `index.html` | Marcação das telas do processo |
-| `estilo.css` | Estilo do "processo impresso", animações e responsividade |
-| `jogo.js` | Mecânica e conteúdo jurídico (`CONTENT`), sem dependências |
-| `assina-embaixo.html` | Build de arquivo único |
-| `ufra.png`, `adm.png` | Logos da realização |
+```
+index.html              versão que roda no site (carrega os arquivos de assets/)
+assina-embaixo.html     versão de arquivo único, com CSS e JS embutidos
+assets/
+├── css/style.css       estilo do "processo impresso", animações e responsividade
+├── js/game.js          mecânica e conteúdo jurídico (CONTENT), sem dependências
+└── img/                logos originais da Ufra e do curso
+```
 
-O conteúdo jurídico fica isolado na constante `CONTENT`, em `jogo.js`: dá para
-trocar perguntas, alternativas e fundamentos sem mexer na mecânica.
+O conteúdo jurídico fica isolado na constante `CONTENT`, em `assets/js/game.js`:
+dá para trocar perguntas, alternativas e fundamentos sem mexer na mecânica. Os
+créditos da folha de rosto ficam logo abaixo, em `CREDITS`.
+
+As imagens em `assets/img/` são os originais das logos. Elas não são carregadas
+em tempo de execução: as logos são desenhadas em SVG dentro do próprio JS, para
+que a versão de arquivo único funcione offline sem depender da pasta.
+
+> As duas versões são mantidas à mão. Ao alterar `index.html`, `style.css` ou
+> `game.js`, replique a mudança em `assina-embaixo.html`, senão elas divergem.
 
 ## Acessibilidade
 
