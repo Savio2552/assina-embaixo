@@ -35,10 +35,40 @@
     if (!window.firebase || !window.FIREBASE_CONFIG) return null;
     if (!window.firebase.apps.length) window.firebase.initializeApp(window.FIREBASE_CONFIG);
     db = window.firebase.database();
+    watchServerClock();
     return db;
   }
 
   function roomRef(code) { return db.ref("salas/" + code); }
+
+  /* Os dois celulares não têm a mesma hora. Sem corrigir esse desvio, a
+     equipe com o relógio adiantado receberia menos tempo de cadastro que a
+     outra — no mesmo prazo compartilhado. O Firebase publica a diferença
+     para o horário do servidor; é ela que alinha as duas contagens. */
+  var serverOffset = 0;
+
+  function watchServerClock() {
+    db.ref(".info/serverTimeOffset").on("value", function (snap) {
+      serverOffset = snap.val() || 0;
+    });
+  }
+
+  function serverNow() { return Date.now() + serverOffset; }
+
+  /* O instante em que o cadastro abriu é da sala, gravado por quem chegar
+     primeiro. As regras só aceitam a primeira gravação, então a corrida
+     entre as duas equipes se resolve sozinha: a perdedora lê o valor que a
+     vencedora escreveu. */
+  function prazoDoCadastro(done) {
+    var ref = room.ref.child("cadastroDe");
+    ref.once("value", function (snap) {
+      if (snap.exists()) return done(snap.val());
+      ref.set(window.firebase.database.ServerValue.TIMESTAMP, function () {
+        ref.once("value", function (outra) { done(outra.val()); },
+                 function () { done(null); });
+      });
+    }, function () { done(null); });
+  }
 
   /* -----------------------------------------------------------------------
      SALA
@@ -179,7 +209,12 @@
     /* A empresa vem do código, não de um sorteio local: as duas telas
        chegam ao mesmo nome sem trocar uma mensagem sequer. */
     GAME.prepareTeamSetup(GAME.companyForRoom(room.code), true);
-    GAME.startSetupTimer();
+
+    prazoDoCadastro(function (inicio) {
+      if (!inicio) return GAME.startSetupTimer(); /* sem instante: prazo local */
+      var fim = inicio + GAME.SETUP_SECONDS * 1000;
+      GAME.startSetupTimer(function () { return (fim - serverNow()) / 1000; });
+    });
   }
 
   /* -----------------------------------------------------------------------

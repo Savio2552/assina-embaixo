@@ -51,7 +51,10 @@ Duas equipes de quatro, uma tela por equipe. Uma cria a sala, a outra entra
 com o código de 4 caracteres; as duas recebem **a mesma empresa**, derivada
 do próprio código — ela não trafega pela rede.
 
-O cadastro dos responsáveis tem **3 minutos**. Quando as duas equipes se
+O cadastro dos responsáveis tem **2 minutos, compartilhados pela sala**: o
+relógio abre quando a primeira equipe chega à tela e as duas contam para o
+mesmo instante, corrigido pelo horário do servidor — quem entrar depois
+pega o tempo que sobrou, não dois minutos novos. Quando as duas equipes se
 declaram prontas, as telas contam 3, 2, 1 e começam juntas. A partir daí
 cada equipe corre no seu ritmo, com **60 segundos por decisão**: prazo
 vencido sem resposta pesa o mesmo que responder errado, senão deixar o

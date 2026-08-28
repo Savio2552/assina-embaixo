@@ -42,7 +42,7 @@ function makeFirebase() {
     return cur === undefined ? null : cur;
   }
   function resolve(v) {
-    if (v === TS) return 1700000000000;
+    if (v === TS) return Date.now();
     if (v && typeof v === "object") {
       var o = Array.isArray(v) ? [] : {};
       Object.keys(v).forEach(function (k) { o[k] = resolve(v[k]); });

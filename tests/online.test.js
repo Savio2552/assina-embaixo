@@ -18,6 +18,8 @@ var H = require(path.join(__dirname, "harness.js"));
    de passar a testar um número que o jogo não usa mais. */
 var GAME_SRC = fs.readFileSync("assets/js/game.js", "utf8");
 var LICENSE_MIN = Number(/var LICENSE_MIN = (\d+);/.exec(GAME_SRC)[1]);
+var SETUP_SECONDS = Number(/var SETUP_SECONDS = (\d+);/.exec(GAME_SRC)[1]);
+var QUESTION_SECONDS = Number(/var QUESTION_SECONDS = (\d+);/.exec(GAME_SRC)[1]);
 
 var falhas = 0;
 function ok(c, m) { if (!c) { falhas++; console.log("  FALHOU: " + m); } }
@@ -41,7 +43,8 @@ function bootar() {
     LICENSE_MIN: LICENSE_MIN,
     gradeFor: function (score) { return { granted: score >= LICENSE_MIN }; },
     setTimer: function (on) { GAME._timer = !!on; },
-    startSetupTimer: function () { GAME._setupTimer = true; },
+    startSetupTimer: function (fn) { GAME._setupTimer = true; GAME._restante = fn || null; },
+    SETUP_SECONDS: SETUP_SECONDS,
     beginGame: function (c, t) { GAME._comecou = { company: c, teams: t }; },
     showScreen: function (s) { telas.push(s); },
     TEAM_SLOTS: 4, onPhase: null, onFinalScore: null
@@ -331,6 +334,53 @@ ok(/return s \+ worstPointsFor\(decision\);/.test(GAME_SRC),
 ok(/points: worstPointsFor\(decision\)/.test(GAME_SRC),
    "evaluateTimeout parou de usar worstPointsFor");
 secao("estouro pesa como erro");
+
+/* ---------- o prazo do cadastro é da sala, não de cada equipe ---------- */
+ok(SETUP_SECONDS === 120, "o cadastro devia ter 2 minutos, está com " + SETUP_SECONDS + "s");
+ok(QUESTION_SECONDS === 60, "a decisão devia ter 60s, está com " + QUESTION_SECONDS + "s");
+secao("durações");
+
+/* a primeira equipe grava o instante de abertura */
+var c1 = naSala();
+c1.fb.write("salas/KQ7D/equipes/b", { nome: "Eles", fase: 0 });
+c1.dom.el("#btn-comecar-online").click();
+var gravado = c1.fb.read("salas/KQ7D/cadastroDe");
+ok(typeof gravado === "number", "não gravou o instante de abertura do cadastro");
+ok(typeof c1.GAME._restante === "function", "cadastro abriu sem prazo compartilhado");
+var resta1 = c1.GAME._restante();
+ok(Math.abs(resta1 - SETUP_SECONDS) < 2,
+   "a primeira equipe devia ver ~" + SETUP_SECONDS + "s, viu " + Math.round(resta1) + "s");
+secao("primeira equipe abre o prazo");
+
+/* a segunda entra 80s depois e NÃO reinicia o relógio: pega o que sobrou */
+var c2 = naSala();
+var abertoHa = 80;
+c2.fb.write("salas/KQ7D/cadastroDe", Date.now() - abertoHa * 1000);
+c2.fb.write("salas/KQ7D/equipes/b", { nome: "Eles", fase: 0 });
+c2.dom.el("#btn-comecar-online").click();
+var resta2 = c2.GAME._restante();
+ok(Math.abs(resta2 - (SETUP_SECONDS - abertoHa)) < 2,
+   "a segunda equipe devia pegar ~" + (SETUP_SECONDS - abertoHa) + "s do prazo em curso, pegou " +
+   Math.round(resta2) + "s — o relógio foi reiniciado");
+secao("prazo compartilhado, não reiniciado");
+
+/* quem chega com o prazo vencido vê zero, não um número negativo na tela */
+var c3 = naSala();
+c3.fb.write("salas/KQ7D/cadastroDe", Date.now() - (SETUP_SECONDS + 30) * 1000);
+c3.fb.write("salas/KQ7D/equipes/b", { nome: "Eles", fase: 0 });
+c3.dom.el("#btn-comecar-online").click();
+ok(c3.GAME._restante() < 0, "o cálculo devia acusar prazo vencido para o jogo zerar na tela");
+secao("prazo já vencido");
+
+/* o instante de abertura não pode ser reescrito por quem chega depois */
+var c4 = naSala();
+var original = Date.now() - 30000;
+c4.fb.write("salas/KQ7D/cadastroDe", original);
+c4.fb.write("salas/KQ7D/equipes/b", { nome: "Eles", fase: 0 });
+c4.dom.el("#btn-comecar-online").click();
+ok(c4.fb.read("salas/KQ7D/cadastroDe") === original,
+   "a segunda equipe sobrescreveu o instante de abertura do cadastro");
+secao("abertura gravada uma vez só");
 
 console.log(falhas ? "\n" + falhas + " FALHA(S)" : "\ntodos os testes passaram");
 process.exit(falhas ? 1 : 0);

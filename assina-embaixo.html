@@ -2538,7 +2538,7 @@ ao processo"><span>Bem-vindo<br>ao processo</span></h2>
   /* Cronômetro. Só o modo online liga (setTimer): no individual e no jogo
      de sala, sem adversário, relógio só atrapalha quem está aprendendo. */
   var QUESTION_SECONDS = 60;
-  var SETUP_SECONDS = 180;
+  var SETUP_SECONDS = 120;
   var timerEnabled = false;
   var tick = null;
 
@@ -2551,17 +2551,16 @@ ao processo"><span>Bem-vindo<br>ao processo</span></h2>
   /* Conta pelo relógio de parede, não somando intervalos: aba em segundo
      plano estrangula setInterval, e um cronômetro que atrasa junto com a
      aba daria vantagem a quem trocasse de janela. */
-  function startTimer(selector, seconds, onEnd) {
+  function startCountdown(selector, secondsLeft, onEnd) {
     if (tick) { clearInterval(tick); tick = null; }
     var el = $(selector);
     if (!el) return;
-    var deadline = Date.now() + seconds * 1000;
     el.classList.remove("oculto");
     paint();
     tick = setInterval(paint, 250);
 
     function paint() {
-      var left = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+      var left = Math.max(0, Math.ceil(secondsLeft()));
       el.textContent = clockText(left);
       el.classList.toggle("cronometro--urgente", left <= 10);
       if (left <= 0) {
@@ -2570,6 +2569,14 @@ ao processo"><span>Bem-vindo<br>ao processo</span></h2>
         onEnd();
       }
     }
+  }
+
+  /* Prazo local: vale para a decisão, que é de cada equipe. */
+  function startTimer(selector, seconds, onEnd) {
+    var deadline = Date.now() + seconds * 1000;
+    startCountdown(selector, function () {
+      return (deadline - Date.now()) / 1000;
+    }, onEnd);
   }
 
   function clockText(total) {
@@ -4020,8 +4027,15 @@ ao processo"><span>Bem-vindo<br>ao processo</span></h2>
     QUESTION_SECONDS: QUESTION_SECONDS,
     SETUP_SECONDS: SETUP_SECONDS,
     setTimer: function (on) { timerEnabled = !!on; if (!on) stopTimer(); },
-    startSetupTimer: function () {
-      startTimer("#cronometro-cadastro", SETUP_SECONDS, function () {
+    /* O prazo do cadastro é da SALA: online.js entrega uma função que
+       calcula quanto falta pelo relógio do servidor, para as duas equipes
+       contarem para o mesmo instante. Sem ela — nunca deveria acontecer —
+       cai num prazo local em vez de ficar sem relógio nenhum. */
+    startSetupTimer: function (secondsLeft) {
+      var deadline = Date.now() + SETUP_SECONDS * 1000;
+      startCountdown("#cronometro-cadastro", secondsLeft || function () {
+        return (deadline - Date.now()) / 1000;
+      }, function () {
         fillMissingTeamNames();
         startTeamGame();
       });

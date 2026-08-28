@@ -13,6 +13,10 @@
           ".validate": "newData.isNumber() && (!data.exists() || data.val() === newData.val())"
         },
 
+        "cadastroDe": {
+          ".validate": "newData.isNumber() && !data.exists()"
+        },
+
         "equipes": {
           "$lado": {
             ".validate": "($lado === 'a' || $lado === 'b') && newData.hasChildren(['nome'])",
