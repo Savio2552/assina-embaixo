@@ -1611,6 +1611,7 @@
       state.phaseIndex++;
       state.decisionIndex = 0;
       state.mode = "briefing";
+      notifyBridge("onPhase", state.phaseIndex);
       render();
     } else {
       issueFinalReport();
@@ -1688,6 +1689,7 @@
     }
 
     showScreen("#tela-final");
+    notifyBridge("onFinalScore", score);
   }
 
 
@@ -1995,11 +1997,18 @@
     field.focus();
   }
 
+  var SCREENS = ["#tela-boas-vindas", "#tela-online", "#tela-equipes",
+                 "#tela-abertura", "#tela-jogo", "#tela-final"];
+
   function showScreen(selector) {
-    ["#tela-boas-vindas", "#tela-equipes", "#tela-abertura", "#tela-jogo", "#tela-final"].forEach(function (id) {
-      $(id).classList.toggle("oculto", id !== selector);
+    SCREENS.forEach(function (id) {
+      /* o arquivo único não tem a tela do modo online: some da lista em vez
+         de estourar, e é o que mantém as duas versões com o mesmo JS */
+      var el = $(id);
+      if (el) el.classList.toggle("oculto", id !== selector);
     });
     if (selector === "#tela-boas-vindas") $("#faixa-folha").textContent = "Fl. 00 · capa";
+    else if (selector === "#tela-online") $("#faixa-folha").textContent = "Fl. 00 · sala";
     else if (selector === "#tela-equipes") $("#faixa-folha").textContent = "Fl. 00 · responsáveis";
     else if (selector === "#tela-abertura") $("#faixa-folha").textContent = "Fl. 01";
     else if (selector === "#tela-final") $("#faixa-folha").textContent = "Parecer final";
@@ -2016,6 +2025,41 @@
     mountMascot("#mascote", currentCharacter());
     render();
   }
+
+  /* ---------------------------------------------------------------------
+     PONTE PARA O MODO ONLINE
+
+     O jogo não depende do online: ele publica esta ponte e segue a vida.
+     Quem preenche onPhase/onFinalScore é o assets/js/online.js, carregado
+     só pelo index.html. Sem ele, notifyBridge() não acha ninguém em casa e
+     não faz nada — que é exatamente o caso do arquivo único offline.
+     --------------------------------------------------------------------- */
+
+  function notifyBridge(hook, value) {
+    var bridge = window.AssinaEmbaixo;
+    if (bridge && typeof bridge[hook] === "function") bridge[hook](value);
+  }
+
+  function prepareTeamSetup(company, locked) {
+    openTeamSetup();
+    var field = $("#empresa-equipes");
+    field.value = company || "";
+    field.readOnly = !!locked;
+    /* no online a empresa vem do código da sala: sortear de novo aqui
+       quebraria o acordo entre as duas telas */
+    $("#btn-sugerir-equipes").classList.toggle("oculto", !!locked);
+  }
+
+  window.AssinaEmbaixo = {
+    newRoomCode: newRoomCode,
+    normalizeRoomCode: normalizeRoomCode,
+    companyForRoom: companyForRoom,
+    prepareTeamSetup: prepareTeamSetup,
+    showScreen: showScreen,
+    TEAM_SLOTS: TEAM_SLOTS,
+    onPhase: null,
+    onFinalScore: null
+  };
 
   document.addEventListener("DOMContentLoaded", function () {
     state = initialState("");

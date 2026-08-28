@@ -82,6 +82,10 @@ ao processo"><span>Bem-vindo<br>ao processo</span></h2>
               <span class="botao__modo">Jogar individual</span>
               <span class="botao__nota">você decide sozinho</span>
             </button>
+            <button class="botao botao--modo" id="btn-online">
+              <span class="botao__modo">Jogar online</span>
+              <span class="botao__nota">duas equipes, um duelo</span>
+            </button>
             <button class="botao botao--modo" id="btn-equipe">
               <span class="botao__modo">Jogar por responsáveis</span>
               <span class="botao__nota">a turma decide em grupo</span>
@@ -136,6 +140,61 @@ ao processo"><span>Bem-vindo<br>ao processo</span></h2>
         <button class="botao botao--fantasma" id="btn-voltar-capa">Voltar</button>
       </div>
       <p class="capa__nota" id="nota-equipes">Cadastre quatro pessoas · quem abre o processo também assina a decisão final</p>
+
+    </section>
+
+    <!-- ================= SALA DO DUELO (modo online) ================= -->
+    <section class="tela oculto" id="tela-online">
+
+      <p class="rubrica">Sala do duelo</p>
+
+      <div id="painel-entrada">
+        <label class="campo-form" for="nome-equipe-online">
+          <span class="campo-form__rotulo">Nome da sua equipe</span>
+          <input id="nome-equipe-online" class="campo-form__entrada" type="text" maxlength="42"
+                 placeholder="ex.: Equipe da manhã" autocomplete="off" spellcheck="false">
+        </label>
+
+        <div class="acoes">
+          <button class="botao botao--principal" id="btn-criar-sala">Criar sala</button>
+        </div>
+
+        <p class="capa__nota">ou entre na sala que a outra equipe criou</p>
+
+        <label class="campo-form" for="codigo-sala">
+          <span class="campo-form__rotulo">Código da sala — 4 caracteres</span>
+          <input id="codigo-sala" class="campo-form__entrada" type="text" maxlength="6"
+                 placeholder="ex.: KQ7D" autocomplete="off" spellcheck="false"
+                 autocapitalize="characters">
+        </label>
+
+        <div class="acoes">
+          <button class="botao" id="btn-entrar-sala">Entrar na sala</button>
+          <button class="botao botao--fantasma" id="btn-voltar-online">Voltar</button>
+        </div>
+      </div>
+
+      <div class="oculto" id="painel-sala">
+        <p class="capa__texto">Passem este código para a outra equipe:</p>
+        <p class="titulo" id="sala-codigo" style="letter-spacing:.18em">—</p>
+
+        <ul class="campos">
+          <li><span class="rotulo">Empreendimento sorteado</span>
+              <span class="pontilhado"></span>
+              <span class="valor" id="sala-empresa">—</span></li>
+        </ul>
+
+        <p class="capa__nota" id="sala-status">Aguardando a outra equipe entrar com este código…</p>
+
+        <div class="acoes">
+          <button class="botao botao--principal" id="btn-comecar-online" disabled>Cadastrar os responsáveis</button>
+          <button class="botao botao--fantasma" id="btn-voltar-online-2">Sair da sala</button>
+        </div>
+      </div>
+
+      <p class="aviso oculto" id="erro-online"></p>
+
+      <p class="capa__nota">As duas equipes recebem a mesma empresa e as mesmas perguntas · vence o maior placar</p>
 
     </section>
 
@@ -273,6 +332,12 @@ ao processo"><span>Bem-vindo<br>ao processo</span></h2>
           <p class="rubrica" style="margin-top:26px">Bônus</p>
           <ul class="lancamentos" id="bonus-final"></ul>
 
+          <div class="oculto" id="bloco-duelo">
+            <p class="rubrica" style="margin-top:26px">Duelo entre as equipes</p>
+            <ul class="lancamentos" id="duelo-placar"></ul>
+            <p class="capa__nota" id="duelo-veredito"></p>
+          </div>
+
           <div class="oculto" id="bloco-placar">
             <p class="rubrica" style="margin-top:26px">Contribuição dos responsáveis</p>
             <ul class="placar placar--final" id="placar-final"></ul>
@@ -313,6 +378,10 @@ ao processo"><span>Bem-vindo<br>ao processo</span></h2>
   <div class="picote picote--dir" aria-hidden="true"></div>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+<script src="assets/js/firebase-config.js"></script>
 <script src="assets/js/game.js"></script>
+<script src="assets/js/online.js"></script>
 </body>
 </html>

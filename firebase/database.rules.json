@@ -1,0 +1,40 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "salas": {
+      "$codigo": {
+        ".read":  "$codigo.matches(/^[ACDEFGHJKLMNPQRTUVWXY34679]{4}$/)",
+        ".write": "$codigo.matches(/^[ACDEFGHJKLMNPQRTUVWXY34679]{4}$/)",
+        ".validate": "newData.hasChild('criadaEm')",
+
+        "criadaEm": {
+          ".validate": "newData.isNumber() && (!data.exists() || data.val() === newData.val())"
+        },
+
+        "equipes": {
+          "$lado": {
+            ".validate": "($lado === 'a' || $lado === 'b') && newData.hasChildren(['nome'])",
+
+            "nome": {
+              ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 42"
+            },
+            "fase": {
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 20"
+            },
+            "placar": {
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100 && (!data.exists() || data.val() === newData.val())"
+            },
+            "terminouEm": {
+              ".validate": "newData.isNumber() && (!data.exists() || data.val() === newData.val())"
+            },
+            "$outro": { ".validate": false }
+          }
+        },
+
+        "$outro": { ".validate": false }
+      }
+    }
+  }
+}

@@ -33,9 +33,13 @@ e cada uma assume um tema durante sua etapa. Duração: 15 a 20 minutos, sem cad
 index.html              versão que roda no site (carrega os arquivos de assets/)
 assina-embaixo.html     versão de arquivo único, com CSS e JS embutidos
 assets/
-├── css/style.css       estilo do "processo impresso", animações e responsividade
-├── js/game.js          mecânica e conteúdo jurídico (CONTENT), sem dependências
-└── img/                logos originais da Ufra e do curso
+├── css/style.css            estilo do "processo impresso", animações e responsividade
+├── js/game.js               mecânica e conteúdo jurídico (CONTENT), sem dependências
+├── js/online.js             modo duelo — sala, sincronia e placar (só o index usa)
+├── js/firebase-config.js    chaves públicas do projeto Firebase
+└── img/                     logos originais da Ufra e do curso
+firebase/
+└── database.rules.json      regras de segurança do Realtime Database
 ```
 
 O conteúdo jurídico fica isolado na constante `CONTENT`, em `assets/js/game.js`:
